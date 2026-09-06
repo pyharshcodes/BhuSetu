@@ -196,15 +196,16 @@ def corridor_dashboard(corridor_id):
     conn.close()
 
     live_weather = weather_service.fetch_live_weather(corridor["center_lat"], corridor["center_lon"])
+    live_soil = weather_service.fetch_live_soil_moisture(corridor["center_lat"], corridor["center_lon"])
     insar_data = insar_service.get_insar_for_corridor(corridor_id)
 
-    # Determine if user is in an active simulation session triggered within last 3 minutes
+    # Determine if user is in an active simulation session triggered within last 45 seconds
     has_active_simulation = False
     if latest_reading_row and latest_reading_row["is_simulated"] == 1:
         try:
             ts_clean = latest_reading_row["timestamp"].replace("Z", "").split("+")[0]
             sim_age = (dt_mod.datetime.utcnow() - dt_mod.datetime.fromisoformat(ts_clean)).total_seconds()
-            if sim_age < 180:
+            if sim_age < 45:
                 has_active_simulation = True
         except Exception:
             pass
@@ -328,10 +329,33 @@ def corridor_dashboard(corridor_id):
             "villages": villages,
             "history": history,
             "live_weather": live_weather,
+            "live_soil_moisture": live_soil,
             "insar": insar_data,
             "simulation_mode": simulation_mode,
         }
     )
+
+
+# ------------------------------------------------------------- Soil Moisture Telemetry --
+@app.get("/api/soil-moisture/live")
+def live_soil_moisture_by_coords():
+    lat = request.args.get("lat") or request.args.get("latitude")
+    lon = request.args.get("lon") or request.args.get("longitude")
+    refresh = request.args.get("refresh", "").lower() in ("1", "true")
+    if lat is None or lon is None:
+        return jsonify({
+            "status": "ERROR",
+            "error": "MISSING_COORDINATES",
+            "message": "Both latitude and longitude query parameters are required."
+        }), 400
+    try:
+        lat_f = float(lat)
+        lon_f = float(lon)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid coordinates"}), 400
+
+    data = weather_service.fetch_live_soil_moisture(lat_f, lon_f, force_refresh=refresh)
+    return jsonify(data)
 
 
 # ------------------------------------------------------------- InSAR / SAR --
