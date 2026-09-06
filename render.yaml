@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: bhusetu-ews
+    env: python
+    region: singapore
+    plan: free
+    branch: main
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn --workers=2 --threads=4 --timeout=120 --bind 0.0.0.0:$PORT backend.app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: WEATHER_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false

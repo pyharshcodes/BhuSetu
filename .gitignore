@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.env
+**/.env
+.env.*
+!.env.example
+*.log
+.pytest_cache/
+.DS_Store
+node_modules/
+backend/uploads/*
+!backend/uploads/.gitkeep

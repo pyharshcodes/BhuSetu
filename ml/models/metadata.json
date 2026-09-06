@@ -1,0 +1,193 @@
+{
+  "model_name": "BhuSetu Landslide Risk Prediction Engine",
+  "model_version": "2.0.0",
+  "model_type": "CalibratedClassifierCV(XGBoostClassifier, method=sigmoid)",
+  "base_estimator": "xgboost.XGBClassifier(n_estimators=150, max_depth=4, learning_rate=0.05, subsample=0.85, scale_pos_weight=3.78)",
+  "training_timestamp": "2026-09-06T08:17:57.911175+00:00",
+  "dataset": {
+    "name": "BhuSetu Unified Landslide Dataset",
+    "version": "1.0.0",
+    "records_total": 3500,
+    "train_records": 2800,
+    "calibration_method": "5-fold Stratified Cross-Validation on Training Fold",
+    "test_records": 700,
+    "positive_rate_pct": 20.91,
+    "sources": [
+      "Google Earth Sikkim Landslide Points (185 events)",
+      "Google Earth Sikkim Landslide Polygons (255 scars)",
+      "GSI National Landslide Susceptibility Mapping (NLSM) NER",
+      "Sentinel-1 InSAR Corridor Telemetry (22 NER corridors)",
+      "Open-Meteo Land Surface & Copernicus DEM Telemetry"
+    ]
+  },
+  "feature_schema": {
+    "engineered_features": [
+      "elevation",
+      "slope",
+      "aspect_sin",
+      "aspect_cos",
+      "curvature",
+      "rainfall_1h",
+      "rainfall_24h",
+      "rainfall_72h",
+      "rainfall_intensity",
+      "temperature",
+      "humidity",
+      "soil_moisture",
+      "insar_velocity_mm_yr",
+      "sar_deformation_flag",
+      "geology_score"
+    ],
+    "feature_count": 15
+  },
+  "risk_thresholds": {
+    "LOW": [
+      0.0,
+      0.25
+    ],
+    "MODERATE": [
+      0.25,
+      0.5
+    ],
+    "HIGH": [
+      0.5,
+      0.75
+    ],
+    "CRITICAL": [
+      0.75,
+      1.0
+    ]
+  },
+  "benchmarks": {
+    "logistic_regression": {
+      "model_name": "Logistic Regression",
+      "precision": 0.8125,
+      "recall": 0.8904,
+      "f1_score": 0.8497,
+      "roc_auc": 0.9759,
+      "pr_auc": 0.8935,
+      "brier_score": 0.0506,
+      "confusion_matrix": {
+        "true_negatives": 524,
+        "false_positives": 30,
+        "false_negatives": 16,
+        "true_positives": 130
+      },
+      "false_negative_rate": 0.1096,
+      "false_positive_rate": 0.0542
+    },
+    "random_forest": {
+      "model_name": "Random Forest",
+      "precision": 0.8323,
+      "recall": 0.8836,
+      "f1_score": 0.8571,
+      "roc_auc": 0.974,
+      "pr_auc": 0.8827,
+      "brier_score": 0.0505,
+      "confusion_matrix": {
+        "true_negatives": 528,
+        "false_positives": 26,
+        "false_negatives": 17,
+        "true_positives": 129
+      },
+      "false_negative_rate": 0.1164,
+      "false_positive_rate": 0.0469
+    },
+    "xgboost_uncalibrated": {
+      "model_name": "XGBoost Classifier",
+      "precision": 0.8355,
+      "recall": 0.8699,
+      "f1_score": 0.8523,
+      "roc_auc": 0.9718,
+      "pr_auc": 0.8924,
+      "brier_score": 0.0502,
+      "confusion_matrix": {
+        "true_negatives": 529,
+        "false_positives": 25,
+        "false_negatives": 19,
+        "true_positives": 127
+      },
+      "false_negative_rate": 0.1301,
+      "false_positive_rate": 0.0451
+    },
+    "final_calibrated_model": {
+      "model_name": "Calibrated XGBoost (Final Model)",
+      "precision": 0.8571,
+      "recall": 0.863,
+      "f1_score": 0.8601,
+      "roc_auc": 0.9736,
+      "pr_auc": 0.9003,
+      "brier_score": 0.049,
+      "confusion_matrix": {
+        "true_negatives": 533,
+        "false_positives": 21,
+        "false_negatives": 20,
+        "true_positives": 126
+      },
+      "false_negative_rate": 0.137,
+      "false_positive_rate": 0.0379
+    }
+  },
+  "feature_importances": [
+    {
+      "feature": "rainfall_72h",
+      "importance": 0.2825
+    },
+    {
+      "feature": "rainfall_24h",
+      "importance": 0.2791
+    },
+    {
+      "feature": "soil_moisture",
+      "importance": 0.1006
+    },
+    {
+      "feature": "insar_velocity_mm_yr",
+      "importance": 0.0692
+    },
+    {
+      "feature": "sar_deformation_flag",
+      "importance": 0.0482
+    },
+    {
+      "feature": "slope",
+      "importance": 0.0357
+    },
+    {
+      "feature": "geology_score",
+      "importance": 0.0264
+    },
+    {
+      "feature": "curvature",
+      "importance": 0.0261
+    },
+    {
+      "feature": "rainfall_1h",
+      "importance": 0.0243
+    },
+    {
+      "feature": "humidity",
+      "importance": 0.0241
+    },
+    {
+      "feature": "elevation",
+      "importance": 0.019
+    },
+    {
+      "feature": "aspect_sin",
+      "importance": 0.0178
+    },
+    {
+      "feature": "rainfall_intensity",
+      "importance": 0.0177
+    },
+    {
+      "feature": "temperature",
+      "importance": 0.0152
+    },
+    {
+      "feature": "aspect_cos",
+      "importance": 0.0142
+    }
+  ]
+}

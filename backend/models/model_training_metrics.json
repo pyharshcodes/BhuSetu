@@ -1,0 +1,31 @@
+{
+  "susceptibility": {
+    "model": "susceptibility_model",
+    "algorithm": "XGBClassifier",
+    "cv_roc_auc_mean": 0.8137,
+    "test_roc_auc": 0.713,
+    "test_pr_auc": 0.7357,
+    "feature_importances": {
+      "slope_index": 0.1863,
+      "geology_index": 0.1747,
+      "land_cover_index": 0.1087,
+      "drainage_index": 0.1054,
+      "historical_density_index": 0.3077,
+      "human_modification_index": 0.1173
+    }
+  },
+  "trigger": {
+    "model": "trigger_model",
+    "algorithm": "XGBClassifier",
+    "cv_roc_auc_mean": 0.7467,
+    "test_roc_auc": 0.7325,
+    "test_pr_auc": 0.3476,
+    "feature_importances": {
+      "rainfall_mm_1h": 0.1269,
+      "rainfall_mm_24h": 0.1773,
+      "rainfall_mm_72h": 0.192,
+      "soil_moisture_pct": 0.3229,
+      "sar_deformation_flag": 0.1808
+    }
+  }
+}
