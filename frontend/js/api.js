@@ -96,5 +96,13 @@ export const api = {
     } catch {}
     return JSON.parse(localStorage.getItem("ews-broadcast-history") || "[]");
   },
+  activateEvacuation: (payload) =>
+    request("/api/evacuation/activate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  getEvacuationActivations: (corridorId) =>
+    request(corridorId ? `/api/evacuation/activations?corridor_id=${corridorId}` : "/api/evacuation/activations"),
 };
 

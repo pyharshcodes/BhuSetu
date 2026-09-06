@@ -87,10 +87,13 @@ function renderFormulaAndScoreSection(corridor, risk, reading, score, level, ins
   const insarCoherence = insar.coherence != null ? insar.coherence : 0.74;
   const insarHazard = insar.hazard_status || (sarFlag ? "ACTIVE_SLOPE_CREEP" : "STABLE");
 
-  const rainSubScore = Math.min(100, Math.round((rain / 180) * 100));
+  const rainSubScore = Math.min(100, Math.round((rain / 150) * 100));
   const susSubScore = risk && risk.susceptibility_score != null ? Math.round(risk.susceptibility_score) : Math.round(corridor.slope_index * 100);
+  const trigSubScore = risk && risk.trigger_score != null ? Math.round(risk.trigger_score) : 85;
   const sarSubScore = sarFlag ? 90 : 15;
-  const vulnSubScore = 75;
+  const humanMod = corridor.human_modification_index != null ? corridor.human_modification_index : 0.5;
+  const histDensity = corridor.historical_density_index != null ? corridor.historical_density_index : 0.5;
+  const vulnSubScore = Math.min(100, Math.round((humanMod * 0.6 + histDensity * 0.4) * 100));
 
   const html = `
     <div class="card-header flex-between">
@@ -104,7 +107,10 @@ function renderFormulaAndScoreSection(corridor, risk, reading, score, level, ins
     <div class="formula-banner">
       <div class="formula-math mono">
         <span class="badge badge-green" style="margin-right: 8px;">● XGBoost ML Models Active</span>
-        <strong>Fused Risk Score</strong> = [Stage 1: Susceptibility (${susSubScore}%)] ⊗ [Stage 2: Dynamic Trigger (${risk ? Math.round(risk.trigger_score) : 85}%)] with InSAR ground deformation
+        <strong>Fused Risk Score</strong> = (0.45 × Susceptibility [${susSubScore}%]) + (0.55 × Trigger [${trigSubScore}%]) + (0.15 × S × T)
+      </div>
+      <div class="muted tiny" style="margin-top: 6px;">
+        Backend Engine Formula: <code>fused = (0.45 × S) + (0.55 × T) + 0.15 × (S/100) × (T/100) × 100</code> with Sentinel-1 InSAR deformation boost.
       </div>
     </div>
 
@@ -112,12 +118,12 @@ function renderFormulaAndScoreSection(corridor, risk, reading, score, level, ins
       <!-- Factor 1 -->
       <div class="factor-box">
         <div class="factor-box-header">
-          <span class="factor-badge weight-35">32% ML Weight</span>
+          <span class="factor-badge weight-35">55% Trigger Weight</span>
           <span class="factor-val text-bold">${rainSubScore}/100</span>
         </div>
-        <div class="factor-name-title">Rainfall Trigger Index</div>
+        <div class="factor-name-title">Rainfall & Soil Trigger</div>
         <div class="factor-metric-detail muted tiny">
-          24h Precip: <strong>${rain} mm</strong> · Saturation: <strong>${moisture}%</strong>
+          24h Precip: <strong>${rain} mm</strong> · Moisture: <strong>${moisture}%</strong>
         </div>
         <div class="factor-bar-wrap">
           <div class="factor-bar-fill" style="width: ${rainSubScore}%; background: #38bdf8;"></div>
@@ -130,7 +136,7 @@ function renderFormulaAndScoreSection(corridor, risk, reading, score, level, ins
       <!-- Factor 2 -->
       <div class="factor-box">
         <div class="factor-box-header">
-          <span class="factor-badge weight-30">31% ML Weight</span>
+          <span class="factor-badge weight-30">45% Fusion Weight</span>
           <span class="factor-val text-bold">${susSubScore}/100</span>
         </div>
         <div class="factor-name-title">Geological Susceptibility</div>
@@ -148,7 +154,7 @@ function renderFormulaAndScoreSection(corridor, risk, reading, score, level, ins
       <!-- Factor 3 -->
       <div class="factor-box">
         <div class="factor-box-header">
-          <span class="factor-badge weight-25">18% ML Weight</span>
+          <span class="factor-badge weight-25">+35% Trigger Boost</span>
           <span class="factor-val text-bold">${sarSubScore}/100</span>
         </div>
         <div class="factor-name-title">Sentinel-1 InSAR Shift</div>
@@ -166,18 +172,18 @@ function renderFormulaAndScoreSection(corridor, risk, reading, score, level, ins
       <!-- Factor 4 -->
       <div class="factor-box">
         <div class="factor-box-header">
-          <span class="factor-badge weight-10">Lifelines</span>
+          <span class="factor-badge weight-10">Anthropogenic</span>
           <span class="factor-val text-bold">${vulnSubScore}/100</span>
         </div>
-        <div class="factor-name-title">Lifeline Exposure Index</div>
+        <div class="factor-name-title">Anthropogenic Exposure</div>
         <div class="factor-metric-detail muted tiny">
-          Critical Arteries: <strong>NH-27 / Rail corridor</strong>
+          Hill Cutting Index: <strong>${(humanMod * 10).toFixed(1)}/10</strong> · Density: <strong>${(histDensity * 10).toFixed(1)}/10</strong>
         </div>
         <div class="factor-bar-wrap">
           <div class="factor-bar-fill" style="width: ${vulnSubScore}%; background: #10b981;"></div>
         </div>
         <div class="factor-footer-note tiny text-warning">
-          Single lifeline cutoff vulnerability
+          Human cut-slope destabilization
         </div>
       </div>
     </div>
@@ -196,15 +202,33 @@ function renderInteractiveSimulator(corridor, reading, risk) {
   let curSar = reading && reading.sar_deformation_flag ? 15 : 2;
 
   function calculateScore(r, m, s, sar) {
-    const rainScore = Math.min(100, (r / 200) * 100);
-    const moistScore = m;
-    const slopeScore = Math.min(100, (s / 50) * 100);
-    const sarScore = Math.min(100, (Math.abs(sar) / 20) * 100);
+    // Stage 1: Susceptibility (0-100) based on slope and corridor static geology indices
+    const slopeNorm = Math.min(1.0, Math.max(0.0, s / 50.0));
+    const susc = (
+      slopeNorm * 0.28 +
+      (corridor.geology_index != null ? corridor.geology_index : 0.5) * 0.18 +
+      (corridor.land_cover_index != null ? corridor.land_cover_index : 0.5) * 0.12 +
+      (corridor.drainage_index != null ? corridor.drainage_index : 0.5) * 0.12 +
+      (corridor.historical_density_index != null ? corridor.historical_density_index : 0.5) * 0.20 +
+      (corridor.human_modification_index != null ? corridor.human_modification_index : 0.5) * 0.10
+    ) * 100.0;
 
-    const fused = 0.35 * (rainScore * 0.7 + moistScore * 0.3) +
-                  0.30 * slopeScore +
-                  0.25 * sarScore +
-                  0.10 * 75;
+    // Stage 2: Dynamic Trigger (0-100) matching risk_engine.py
+    const r1 = Math.min(1.0, 15.0 / 25.0);
+    const r24 = Math.min(1.0, r / 150.0);
+    const r72 = Math.min(1.0, (r * 1.8) / 300.0);
+    const moist = Math.min(1.0, Math.max(0.0, (m - 20.0) / 60.0));
+
+    let trig = 0.15 * r1 + 0.30 * r24 + 0.25 * r72 + 0.30 * moist;
+    if (Math.abs(sar) >= 5.0) {
+      trig = Math.min(1.0, trig + 0.35);
+    }
+    const trigScore = trig * 100.0;
+
+    // Stage 3: Confidence-weighted non-linear fusion matching fuse() in risk_engine.py
+    const fused = (0.45 * susc) + (0.55 * trigScore) + (
+      0.15 * (susc / 100.0) * (trigScore / 100.0) * 100.0
+    );
     return Math.min(100, Math.round(fused));
   }
 

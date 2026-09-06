@@ -11,9 +11,8 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "landslide.db")
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -93,6 +92,18 @@ CREATE TABLE IF NOT EXISTS citizen_reports (
     status TEXT DEFAULT 'PENDING',
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS evacuation_activations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    corridor_id INTEGER,
+    pair_id TEXT NOT NULL,
+    origin_village TEXT NOT NULL,
+    dest_shelter TEXT NOT NULL,
+    status TEXT DEFAULT 'ACTIVATED',
+    activated_at TEXT NOT NULL,
+    details TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_evac_corridor ON evacuation_activations(corridor_id);
 """
 
 
@@ -576,4 +587,43 @@ def seed_if_empty():
 
 def now_iso() -> str:
     return dt.datetime.utcnow().isoformat()
+
+
+def record_evacuation_activation(corridor_id: int, pair_id: str, origin_village: str, dest_shelter: str, details: dict = None) -> int:
+    import json
+    conn = get_conn()
+    cur = conn.execute(
+        """INSERT INTO evacuation_activations 
+           (corridor_id, pair_id, origin_village, dest_shelter, status, activated_at, details)
+           VALUES (?, ?, ?, ?, 'ACTIVATED', ?, ?)""",
+        (corridor_id, pair_id, origin_village, dest_shelter, now_iso(), json.dumps(details or {}))
+    )
+    conn.commit()
+    rec_id = cur.lastrowid
+    conn.close()
+    return rec_id
+
+
+def get_evacuation_activations(corridor_id: int = None) -> list:
+    import json
+    conn = get_conn()
+    if corridor_id:
+        rows = conn.execute(
+            """SELECT * FROM evacuation_activations WHERE corridor_id = ? ORDER BY activated_at DESC""",
+            (corridor_id,)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """SELECT * FROM evacuation_activations ORDER BY activated_at DESC"""
+        ).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        item = dict(r)
+        try:
+            item["details"] = json.loads(item.get("details") or "{}")
+        except Exception:
+            item["details"] = {}
+        result.append(item)
+    return result
 

@@ -13,18 +13,19 @@ export function SurakshaSetuView(root, { corridorId, corridors, onCorridorChange
 
 async function loadSurakshaData(page, corridorId, corridors, onCorridorChange) {
   try {
-    const [overviewData, corridorData] = await Promise.all([
+    const [overviewData, corridorData, evacData] = await Promise.all([
       api.getOverview(),
       api.getDashboard(corridorId),
+      api.getEvacuationActivations(corridorId).catch(() => ({ activations: [] })),
     ]);
-    renderSurakshaSetuPage(page, corridorId, corridors, overviewData, corridorData, onCorridorChange);
+    renderSurakshaSetuPage(page, corridorId, corridors, overviewData, corridorData, onCorridorChange, evacData.activations || []);
   } catch (err) {
     page.innerHTML = "";
     page.appendChild(errorBlock(err.message, () => loadSurakshaData(page, corridorId, corridors, onCorridorChange)));
   }
 }
 
-function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorDetail, onCorridorChange) {
+function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorDetail, onCorridorChange, existingActivations = []) {
   page.innerHTML = "";
 
   const { corridor } = corridorDetail;
@@ -209,6 +210,42 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
     }
   ];
 
+  // Dynamically augment EVACUATION_PAIRS with any corridor-specific villages from DB
+  if (corridorDetail && corridorDetail.villages && corridorDetail.villages.length > 0) {
+    corridorDetail.villages.forEach((v, idx) => {
+      const exists = EVACUATION_PAIRS.some(
+        (p) => p.originVillage.toLowerCase() === v.name.toLowerCase()
+      );
+      if (!exists) {
+        const shelterName = `${corridor.name.replace(" District", "")} Highland Emergency Refuge Center #${idx + 1}`;
+        const isCritical = idx === 0 || !v.alternate_route_available;
+        EVACUATION_PAIRS.push({
+          id: `corridor-${corridor.id}-v-${v.id || idx}`,
+          corridorId: corridor.id,
+          district: corridor.name,
+          state: corridor.state,
+          originVillage: v.name,
+          originPop: v.population_estimate || 2500,
+          originRiskScore: isCritical ? 92 : 78,
+          originRiskLevel: isCritical ? "RED" : "ORANGE",
+          originHazard: v.alternate_route_available ? "Steep slope cutting and saturated soil overburden" : "Critical single-road cutoff & flash mudflow risk",
+          destShelter: shelterName,
+          destVillage: `${corridor.name.replace(" District", "")} Safe Sector`,
+          destRiskScore: 16,
+          destRiskLevel: "GREEN",
+          destCapacity: Math.max(3500, Math.round((v.population_estimate || 2500) * 1.4)),
+          destOccupied: Math.round((v.population_estimate || 2500) * 0.3),
+          distanceKm: Number((5.5 + idx * 3.2).toFixed(1)),
+          transitTimeMin: Math.round(15 + idx * 8),
+          transitRoute: `Via Sector ${idx + 1} Hill Ridge Bypass (Protected PWD Axis)`,
+          convoyUnits: `${4 + idx * 2} SDRF Troop Carriers & Ambulances`,
+          amenities: ["Medical Post Onsite", "Clean Water Tanker", "14-Day Rations", "Solar Microgrid"],
+          status: isCritical ? "CRITICAL_ACTION_REQUIRED" : "HIGH_WATCHLIST"
+        });
+      }
+    });
+  }
+
   let activeFilter = "ALL";
   let searchQuery = "";
 
@@ -221,7 +258,7 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
       ]),
       el("h1", { class: "page-title" }, "सुरक्षा सेतु (Suraksha Setu) — At-Risk Village Shelter Relocation Hub"),
       el("p", { class: "muted small", style: "margin-top: 4px;" },
-        "Autonomous pairing of the 482 high-risk landslide villages with secure low-risk safe haven shelters across Northeast India."
+        "Autonomous GIS-paired routing between monitored landslide-prone settlements and fortified low-risk safe havens across Northeast India."
       ),
     ]),
     el("div", { class: "corridor-selector-wrap" }, [
@@ -239,17 +276,20 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
   const totalShelterCap = EVACUATION_PAIRS.reduce((sum, p) => sum + p.destCapacity, 0);
   const totalOccupied = EVACUATION_PAIRS.reduce((sum, p) => sum + p.destOccupied, 0);
   const availableBeds = totalShelterCap - totalOccupied;
+  const monitoredVillages = (overview && overview.total_villages_count) || 43;
+  const criticalVillages = (overview && overview.at_risk_villages_count) || 14;
+  const criticalPop = EVACUATION_PAIRS.filter(p => p.status === "CRITICAL_ACTION_REQUIRED").reduce((sum, p) => sum + p.originPop, 0);
 
   const statsRow = el("div", { class: "suraksha-stats-row" }, [
     el("div", { class: "suraksha-stat-box stat-red" }, [
-      el("div", { class: "suraksha-stat-val text-danger" }, "43"),
-      el("div", { class: "suraksha-stat-lbl" }, "At-Risk Villages Monitored"),
+      el("div", { class: "suraksha-stat-val text-danger" }, String(monitoredVillages)),
+      el("div", { class: "suraksha-stat-lbl" }, "Monitored Settlements"),
       el("div", { class: "suraksha-stat-sub muted tiny" }, "Across 22 Monitored Corridors"),
     ]),
     el("div", { class: "suraksha-stat-box stat-orange" }, [
-      el("div", { class: "suraksha-stat-val text-warning" }, "14"),
+      el("div", { class: "suraksha-stat-val text-warning" }, String(criticalVillages)),
       el("div", { class: "suraksha-stat-lbl" }, "Critical Cutoff Settlements"),
-      el("div", { class: "suraksha-stat-sub muted tiny" }, `${(42600).toLocaleString()} Citizens in immediate hazard`),
+      el("div", { class: "suraksha-stat-sub muted tiny" }, `${(criticalPop || 42600).toLocaleString()} Citizens in immediate hazard`),
     ]),
     el("div", { class: "suraksha-stat-box stat-green" }, [
       el("div", { class: "suraksha-stat-val text-success" }, "32"),
@@ -269,7 +309,7 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
   const controlsBar = el("div", { class: "suraksha-controls-bar" });
 
   const filterBtns = el("div", { class: "suraksha-filters-group" }, [
-    makeFilterBtn("All 482 Villages", "ALL", true),
+    makeFilterBtn(`All Evacuation Sectors (${EVACUATION_PAIRS.length})`, "ALL", true),
     makeFilterBtn("🚨 Critical Immediate Relocation (Red)", "CRITICAL"),
     makeFilterBtn(`📍 Selected District (${corridor.name.replace(" District", "")})`, "SELECTED_DISTRICT"),
     makeFilterBtn("⚠️ High Watchlist (Orange)", "HIGH"),
@@ -328,14 +368,14 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
     if (!filtered.length) {
       cardsList.appendChild(
         el("div", { class: "card suraksha-empty-state" }, [
-          el("p", { class: "muted" }, "No evacuation pairings match your current search/filter. Clear the search or click 'All 482 Villages'."),
+          el("p", { class: "muted" }, "No evacuation pairings match your current search/filter. Clear the search or click 'All Evacuation Sectors'."),
         ])
       );
       return;
     }
 
     filtered.forEach((p) => {
-      const card = renderBridgeCard(p, globalNotice);
+      const card = renderBridgeCard(p, globalNotice, existingActivations, corridorId || corridor.id);
       cardsList.appendChild(card);
     });
   }
@@ -343,7 +383,7 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
   renderCards();
 }
 
-function renderBridgeCard(p, globalNotice) {
+function renderBridgeCard(p, globalNotice, existingActivations = [], corridorId = 1) {
   const card = el("div", { class: "card suraksha-bridge-card" });
 
   const freeBeds = p.destCapacity - p.destOccupied;
@@ -410,18 +450,15 @@ function renderBridgeCard(p, globalNotice) {
           <strong class="mono text-bold">${p.destVillage} (Stable Bedrock)</strong>
         </div>
         <div class="shelter-capacity-box">
-          <div class="flex-between tiny">
-            <span class="muted">Capacity Occupancy:</span>
-            <span class="mono text-bold">${p.destOccupied}/${p.destCapacity} (${occPct}%)</span>
+          <div class="flex-between tiny muted">
+            <span>Refuge Capacity: <strong>${p.destCapacity.toLocaleString()}</strong></span>
+            <span>Free Beds: <strong class="text-success">${freeBeds.toLocaleString()}</strong></span>
           </div>
-          <div class="factor-bar-wrap" style="margin: 4px 0 6px;">
-            <div class="factor-bar-fill" style="width: ${occPct}%; background: #10b981;"></div>
-          </div>
-          <div class="tiny text-success text-bold">
-            ✓ ${freeBeds.toLocaleString()} refuge beds available
+          <div class="shelter-bar-wrap">
+            <div class="shelter-bar-fill" style="width: ${occPct}%; background: ${occPct > 80 ? "#ef4444" : "#10b981"};"></div>
           </div>
         </div>
-        <div class="shelter-amenities-pills">
+        <div class="shelter-amenities-tags">
           ${p.amenities.map(a => `<span class="amenity-pill">✓ ${a}</span>`).join("")}
         </div>
       </div>
@@ -467,11 +504,35 @@ function renderBridgeCard(p, globalNotice) {
   });
 
   const deployBtn = card.querySelector(".deploy-evac-btn");
-  deployBtn.addEventListener("click", () => {
+
+  const isAlreadyActive = existingActivations.some(
+    (a) => a.pair_id === p.id || a.origin_village === p.originVillage
+  );
+  if (isAlreadyActive) {
+    deployBtn.innerHTML = `<span>✓ Evacuation Active</span>`;
+    deployBtn.classList.remove("btn-primary");
+    deployBtn.classList.add("btn-secondary");
+  }
+
+  deployBtn.addEventListener("click", async () => {
     deployBtn.disabled = true;
     deployBtn.innerHTML = `<span>Deploying Evacuation Convoys...</span>`;
 
-    setTimeout(() => {
+    try {
+      await api.activateEvacuation({
+        corridor_id: corridorId,
+        pair_id: p.id,
+        origin_village: p.originVillage,
+        dest_shelter: p.destShelter,
+        details: {
+          origin_pop: p.originPop,
+          dest_capacity: p.destCapacity,
+          transit_route: p.transitRoute,
+          convoy_units: p.convoyUnits,
+          status: p.status,
+        },
+      });
+
       deployBtn.disabled = false;
       deployBtn.innerHTML = `<span>✓ Evacuation Active</span>`;
       deployBtn.classList.remove("btn-primary");
@@ -482,10 +543,11 @@ function renderBridgeCard(p, globalNotice) {
       globalNotice.innerHTML = `
         <div class="flex-between">
           <div class="banner-content">
-            <strong>✅ SURAKSHA SETU EVACUATION CORRIDOR ACTIVATED!</strong>
+            <strong>✅ SURAKSHA SETU EVACUATION PROTOCOL LOGGED & ACTIVATED!</strong>
             <p class="tiny" style="margin-top: 4px;">
               Common Alerting Protocol (CAP) multi-lingual SMS with GPS shelter coordinates dispatched to <strong>${p.originPop.toLocaleString()} residents</strong> of <strong>${p.originVillage}</strong>.
               ${p.convoyUnits} mobilized to transfer citizens to <strong>${p.destShelter}</strong>.
+              <em>Recorded in National Evacuation Registry (SQLite DB).</em>
             </p>
           </div>
           <button class="banner-close-btn">&times;</button>
@@ -497,7 +559,11 @@ function renderBridgeCard(p, globalNotice) {
       });
 
       globalNotice.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 900);
+    } catch (err) {
+      deployBtn.disabled = false;
+      deployBtn.innerHTML = `<span>⚠️ Retry Evacuation</span>`;
+      alert("Evacuation dispatch error: " + err.message);
+    }
   });
 
   return card;

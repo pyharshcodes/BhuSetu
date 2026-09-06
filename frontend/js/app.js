@@ -51,14 +51,17 @@ async function boot() {
 
 async function checkHealthAndLoadCorridors() {
   try {
-    const [health, corridors] = await Promise.all([
+    const [health, corridors, alerts] = await Promise.all([
       api.health(),
       api.listCorridors(),
+      api.listAlerts("YELLOW").catch(() => []),
     ]);
     state.backendStatus = "ok";
     state.simulationMode = health.simulation_mode;
     state.modelMode = health.model_mode;
     state.corridors = corridors;
+    const activeList = Array.isArray(alerts) ? alerts.filter((a) => a.alert_level === "RED" || a.alert_level === "ORANGE" || a.alert_level === "YELLOW") : [];
+    state.activeAlertCount = activeList.length;
     if (state.corridors.length && !state.selectedCorridorId) {
       // Find Dima Hasao as default if present, else first corridor
       const dima = state.corridors.find((c) => c.name.includes("Dima Hasao"));
@@ -139,10 +142,11 @@ function renderHeader() {
     ),
   ]);
 
-  // Notification Bell with red badge counter "1"
-  const bellBtn = el("a", { href: "#/alerts", class: "header-bell-btn", title: "Active Alerts" }, [
+  // Notification Bell with dynamic badge counter
+  const alertCount = state.activeAlertCount != null ? state.activeAlertCount : 0;
+  const bellBtn = el("a", { href: "#/alerts", class: "header-bell-btn", title: `${alertCount} Active Alerts` }, [
     el("span", { class: "bell-icon", html: ICONS.bell }),
-    el("span", { class: "bell-badge-count" }, "1"),
+    el("span", { class: "bell-badge-count" }, String(alertCount)),
   ]);
 
   // User profile avatar badge "HC" + "Hello, Harsh" + "Team SIH26001"

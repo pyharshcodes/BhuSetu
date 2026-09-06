@@ -935,6 +935,43 @@ def regional_overview():
     })
 
 
+@app.route("/api/evacuation/activate", methods=["POST"])
+def activate_evacuation():
+    payload = request.get_json(silent=True) or {}
+    corridor_id = payload.get("corridor_id")
+    pair_id = payload.get("pair_id", "custom")
+    origin_village = payload.get("origin_village", "Unknown Village")
+    dest_shelter = payload.get("dest_shelter", "Unknown Shelter")
+    details = payload.get("details", {})
+    if not corridor_id:
+        return jsonify({"error": "corridor_id is required"}), 400
+
+    rec_id = dbm.record_evacuation_activation(
+        corridor_id=int(corridor_id),
+        pair_id=pair_id,
+        origin_village=origin_village,
+        dest_shelter=dest_shelter,
+        details=details,
+    )
+    return jsonify({
+        "success": True,
+        "activation_id": rec_id,
+        "corridor_id": int(corridor_id),
+        "pair_id": pair_id,
+        "origin_village": origin_village,
+        "dest_shelter": dest_shelter,
+        "status": "ACTIVATED",
+        "timestamp": dbm.now_iso(),
+    }), 201
+
+
+@app.route("/api/evacuation/activations", methods=["GET"])
+def get_evacuation_activations():
+    corridor_id = request.args.get("corridor_id", type=int)
+    activations = dbm.get_evacuation_activations(corridor_id)
+    return jsonify({"activations": activations, "count": len(activations)})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=False)

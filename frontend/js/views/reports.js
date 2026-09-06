@@ -19,7 +19,7 @@ export function ReportsView(root, { corridorId, corridors, onCorridorChange }) {
   const layout = el("div", { class: "reports-layout" });
   page.appendChild(layout);
 
-  layout.appendChild(reportForm(corridorId, layout));
+  layout.appendChild(reportForm(corridorId, corridors, layout));
   const listWrap = el("div", { class: "card reports-list-card" }, [el("h3", {}, "Recent Reports"), loadingBlock()]);
   layout.appendChild(listWrap);
   loadReports(listWrap, corridorId);
@@ -28,17 +28,34 @@ export function ReportsView(root, { corridorId, corridors, onCorridorChange }) {
 function corridorSelector(corridors, selectedId, onChange) {
   const select = el(
     "select",
-    { class: "corridor-select", onchange: (e) => onChange(Number(e.target.value)) },
+    {
+      class: "corridor-select",
+      onchange: (e) => {
+        const newId = Number(e.target.value);
+        const match = (corridors || []).find((c) => c.id === newId);
+        if (match) {
+          const latField = document.getElementById("report-lat-input");
+          const lonField = document.getElementById("report-lon-input");
+          if (latField) latField.value = Number(match.center_lat).toFixed(4);
+          if (lonField) lonField.value = Number(match.center_lon).toFixed(4);
+        }
+        onChange(newId);
+      },
+    },
     corridors.map((c) => el("option", { value: c.id, ...(c.id === selectedId ? { selected: "selected" } : {}) }, c.name))
   );
   return el("div", { class: "corridor-selector" }, [el("label", {}, "Pilot corridor"), select]);
 }
 
-function reportForm(corridorId, layout) {
+function reportForm(corridorId, corridors, layout) {
+  const selectedCorridor = (corridors || []).find((c) => c.id === corridorId) || (corridors && corridors[0]);
+  const defaultLat = selectedCorridor && selectedCorridor.center_lat != null ? Number(selectedCorridor.center_lat).toFixed(4) : "25.1800";
+  const defaultLon = selectedCorridor && selectedCorridor.center_lon != null ? Number(selectedCorridor.center_lon).toFixed(4) : "93.0300";
+
   const status = el("p", { class: "muted small form-status" }, "");
   const nameInput = el("input", { type: "text", placeholder: "Your name (optional)" });
-  const latInput = el("input", { type: "number", step: "0.0001", placeholder: "Latitude", value: "27.15" });
-  const lonInput = el("input", { type: "number", step: "0.0001", placeholder: "Longitude", value: "88.42" });
+  const latInput = el("input", { type: "number", step: "0.0001", placeholder: "Latitude", value: defaultLat, id: "report-lat-input" });
+  const lonInput = el("input", { type: "number", step: "0.0001", placeholder: "Longitude", value: defaultLon, id: "report-lon-input" });
   const descInput = el("textarea", { rows: "3", placeholder: "e.g. Large crack near road shoulder, debris on carriageway…" });
   const photoInput = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp" });
   const submitBtn = el("button", { class: "btn btn-primary", type: "submit" }, "Submit Report");
