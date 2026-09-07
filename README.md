@@ -306,12 +306,44 @@ BhuSetu is configured for continuous zero-downtime deployment on **Render**, Rai
 
 ## 👥 Team & Acknowledgments
 
-- **Hackathon:** Smart India Hackathon 2026
-- **Problem Statement:** SIH 26001
-- **Nodal Ministry:** Ministry of Development of North Eastern Region (MDoNER)
-- **Technical Guidance:** National Disaster Management Authority (NDMA) & Geological Survey of India (GSI)
-- **License:** [MIT License](LICENSE)
+<div align="center">
+
+### ⚡ Team **Bits & Bytes**
+*Innovating for Disaster Resilience & Mountain Community Safety*  
+**Smart India Hackathon 2026 — Problem Statement SIH 26001**
+
+</div>
+
+| Role | Member Name | Technical Specialization & Contribution |
+|:---:|:---|:---|
+| 👑 **Team Leader** | **Pallak Devi** | **Project Orchestration & Disaster Policy:** Operational workflow design, NDMA SOP directive alignment, and system presentation leadership. |
+| 💻 **Core Engineering** | **Harsh Deep Chak** | **Full-Stack Architecture & Cloud Deployment:** End-to-end platform integration, NASA ASF Sentinel-1 satellite client, Web Audio/Speech engines, and production CI/CD. |
+| 🧠 **ML & Data Science** | **Irmin Mittal** | **Physics-Informed ML & Statistical Inference:** Two-stage susceptibility & trigger fusion, XGBoost training, and Isotonic probability calibration. |
+| 👁️ **Computer Vision** | **Himani Parmar** | **Computer Vision & Citizen Intelligence:** OpenCV tensile fracture detection, Hough line shear transforms, and mudflow segmentation algorithms. |
+| 🗺️ **Geospatial GIS** | **Gautam Kashyap** | **Geomorphic GIS & Regional Calibration:** 8-state pan-Northeast spatial mapping, 132-district telemetry calibration, and multi-layer soil hydrology. |
+| 🛡️ **Humanitarian Logistics** | **Vineet Shiroda** | **Suraksha Setu & Emergency Protocols:** Safe haven poly-shelter allocation, road blockage detour simulations, and offline 112 cellular SMS SOS architecture. |
+
+<br/>
+
+### 🏛️ Institutional Acknowledgments & Technical Guidance
+
+- **Smart India Hackathon 2026** — Ministry of Education's Innovation Cell (MIC) & AICTE.
+- **Ministry of Development of North Eastern Region (MDoNER)** — Problem Statement SIH 26001 Nodal Authority.
+- **Ministry of Earth Sciences (MoES) & NDMA** — Operational disaster management guidelines and early warning protocols.
+- **Geological Survey of India (GSI) & Copernicus Programme** — Landslide susceptibility methodologies and Sentinel-1 C-SAR radar observations.
+- **Open-Meteo & OpenWeather** — High-resolution global atmospheric and volumetric land surface soil moisture telemetry.
+
+---
 
 <div align="center">
-  <sub>Built with ❤️ for the safety, resilience, and prosperity of the North Eastern Region of India.</sub>
+
+### 🇮🇳 **BhuSetu — Prepared Today, Safer Tomorrow**
+<sub>Developed with passion, rigor, and dedication by **Team Bits & Bytes** for the safety and resilience of Northeast India.</sub>
+
+<br/>
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+&nbsp;·&nbsp;
+[![GitHub Repo](https://img.shields.io/badge/GitHub-BhuSetu-181717?logo=github)](https://github.com/pyharshcodes/BhuSetu)
+
 </div>
