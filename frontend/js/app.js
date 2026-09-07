@@ -172,11 +172,28 @@ function renderHeader() {
   );
   const statusPill = el("div", { class: "header-status-pill" }, [statusDot, statusText]);
 
-  // Mobile menu button
+  // Mobile menu button with backdrop overlay
   const menuBtn = el("button", {
+    id: "menu-btn",
     class: "header-menu-btn",
+    "aria-label": "Toggle navigation menu",
     onclick: () => {
-      if (sidebarRoot) sidebarRoot.classList.toggle("sidebar-open");
+      if (sidebarRoot) {
+        const isOpen = sidebarRoot.classList.toggle("sidebar-open");
+        let backdrop = document.getElementById("sidebar-mobile-backdrop");
+        if (!backdrop) {
+          backdrop = document.createElement("div");
+          backdrop.id = "sidebar-mobile-backdrop";
+          backdrop.className = "sidebar-mobile-backdrop";
+          backdrop.onclick = () => closeMobileSidebar();
+          document.body.appendChild(backdrop);
+        }
+        if (isOpen) {
+          backdrop.classList.add("active");
+        } else {
+          backdrop.classList.remove("active");
+        }
+      }
     },
   }, [el("span", { html: ICONS.menu })]);
 
@@ -255,7 +272,14 @@ function renderSidebar() {
   sidebarRoot.appendChild(bottomBadge);
 }
 
+function closeMobileSidebar() {
+  if (sidebarRoot) sidebarRoot.classList.remove("sidebar-open");
+  const backdrop = document.getElementById("sidebar-mobile-backdrop");
+  if (backdrop) backdrop.classList.remove("active");
+}
+
 function route() {
+  closeMobileSidebar();
   renderHeader();
   renderSidebar();
   const hash = location.hash || "#/";
