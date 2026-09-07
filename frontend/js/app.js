@@ -142,7 +142,10 @@ function renderHeader() {
         title: "हिन्दी इंटरफ़ेस (Hindi)",
         onclick: () => i18n.setLanguage("hi"),
       },
-      "हिन्दी"
+      [
+        el("span", { class: "lang-full" }, "हिन्दी"),
+        el("span", { class: "lang-short" }, "हि"),
+      ]
     ),
     el(
       "button",
@@ -151,7 +154,10 @@ function renderHeader() {
         title: "অসমীয়া ইণ্টাৰফেচ (Assamese)",
         onclick: () => i18n.setLanguage("as"),
       },
-      "অসমীয়া"
+      [
+        el("span", { class: "lang-full" }, "অসমীয়া"),
+        el("span", { class: "lang-short" }, "অ"),
+      ]
     ),
   ]);
 
