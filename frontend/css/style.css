@@ -2251,41 +2251,133 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 
 .disaster-bg-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -2;
+  top: -4%;
+  left: -4%;
+  width: 108vw;
+  height: 108vh;
+  z-index: -5;
   pointer-events: none;
   background-image: url('../assets/mountain-bg.jpg');
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
-  filter: blur(1px) brightness(0.68) contrast(1.1);
-  transform: scale(1.01);
+  filter: blur(0.5px) brightness(0.70) contrast(1.1);
+  transform: scale(1.02);
   opacity: 0.95;
-  transition: opacity 0.3s ease, filter 0.3s ease;
-  animation: himalayanMistDrift 28s ease-in-out infinite alternate;
-  will-change: transform, filter;
+  transition: opacity 0.4s ease, filter 0.4s ease;
+  animation: himalayanParallax3D 34s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
-@keyframes himalayanMistDrift {
+@keyframes himalayanParallax3D {
   0% {
-    transform: scale(1.01) translate(0, 0);
-    filter: blur(1px) brightness(0.68) contrast(1.1);
+    transform: translate3d(0, 0, 0) scale(1.02);
+    filter: blur(0.5px) brightness(0.70) contrast(1.1);
   }
   50% {
-    transform: scale(1.05) translate(-10px, -6px);
-    filter: blur(0.8px) brightness(0.74) contrast(1.12);
+    transform: translate3d(-14px, -8px, 0) scale(1.06);
+    filter: blur(0.2px) brightness(0.75) contrast(1.12);
   }
   100% {
-    transform: scale(1.01) translate(0, 0);
-    filter: blur(1px) brightness(0.68) contrast(1.1);
+    transform: translate3d(8px, -4px, 0) scale(1.03);
+    filter: blur(0.5px) brightness(0.70) contrast(1.1);
+  }
+}
+
+/* 3D Volumetric Moving Clouds Layers (Badal chal rhe hain) */
+.disaster-bg-clouds-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250vw;
+  height: 100vh;
+  pointer-events: none;
+  background-repeat: repeat-x;
+  will-change: transform;
+}
+
+.disaster-bg-clouds-layer.layer-deep {
+  z-index: -4;
+  opacity: 0.28;
+  background-image: 
+    radial-gradient(ellipse 65% 38% at 20% 32%, rgba(255, 255, 255, 0.45) 0%, rgba(203, 213, 225, 0.2) 45%, transparent 75%),
+    radial-gradient(ellipse 75% 32% at 70% 28%, rgba(241, 245, 249, 0.4) 0%, rgba(148, 163, 184, 0.15) 50%, transparent 80%),
+    radial-gradient(ellipse 55% 28% at 45% 36%, rgba(255, 255, 255, 0.35) 0%, transparent 70%);
+  background-size: 110vw 100vh;
+  filter: blur(24px);
+  animation: cloudDriftDeep 48s linear infinite;
+}
+
+.disaster-bg-clouds-layer.layer-mid {
+  z-index: -3;
+  opacity: 0.22;
+  background-image: 
+    radial-gradient(ellipse 85% 30% at 30% 48%, rgba(255, 255, 255, 0.38) 0%, rgba(226, 232, 240, 0.15) 45%, transparent 75%),
+    radial-gradient(ellipse 95% 38% at 85% 42%, rgba(255, 255, 255, 0.32) 0%, transparent 70%);
+  background-size: 130vw 100vh;
+  filter: blur(18px);
+  animation: cloudDriftMid 30s linear infinite;
+}
+
+@keyframes cloudDriftDeep {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-55vw, 0, 0);
+  }
+}
+
+@keyframes cloudDriftMid {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-65vw, 6px, 0);
+  }
+}
+
+/* 3D Dynamic Mountain Wind Currents / Breeze (Hawa chal rhi hai) */
+.disaster-bg-wind-stream {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0.36;
+  background-image: 
+    repeating-linear-gradient(
+      -24deg,
+      transparent,
+      transparent 80px,
+      rgba(255, 255, 255, 0.04) 82px,
+      rgba(56, 189, 248, 0.09) 86px,
+      transparent 90px,
+      transparent 180px
+    ),
+    radial-gradient(ellipse 100% 55% at 50% 65%, rgba(56, 189, 248, 0.06) 0%, transparent 75%);
+  background-size: 320px 320px, 100% 100%;
+  animation: windCurrentDrift 11s linear infinite;
+  will-change: background-position, opacity;
+}
+
+@keyframes windCurrentDrift {
+  0% {
+    background-position: 0px 0px, 0 0;
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.44;
+  }
+  100% {
+    background-position: 320px -320px, 0 0;
+    opacity: 0.28;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .disaster-bg-backdrop {
+  .disaster-bg-backdrop,
+  .disaster-bg-clouds-layer,
+  .disaster-bg-wind-stream {
     animation: none;
   }
 }
@@ -2298,17 +2390,25 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   height: 100vh;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(8, 14, 26, 0.42) 0%, rgba(6, 11, 20, 0.72) 100%);
+  background: radial-gradient(ellipse at 50% 35%, rgba(8, 14, 26, 0.32) 0%, rgba(6, 11, 20, 0.74) 100%);
   transition: background 0.3s ease;
 }
 
 [data-theme="light"] .disaster-bg-backdrop {
-  filter: blur(1px) brightness(0.98) contrast(0.95) saturate(0.85);
+  filter: blur(0.5px) brightness(0.98) contrast(0.95) saturate(0.85);
   opacity: 0.38;
 }
 
+[data-theme="light"] .disaster-bg-clouds-layer {
+  opacity: 0.16;
+}
+
+[data-theme="light"] .disaster-bg-wind-stream {
+  opacity: 0.20;
+}
+
 [data-theme="light"] .disaster-bg-overlay {
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.65) 0%, rgba(241, 245, 249, 0.85) 100%);
+  background: radial-gradient(ellipse at 50% 35%, rgba(248, 250, 252, 0.58) 0%, rgba(241, 245, 249, 0.82) 100%);
 }
 
 /* =========================================================================
