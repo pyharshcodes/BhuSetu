@@ -309,19 +309,20 @@ BhuSetu is configured for continuous zero-downtime deployment on **Render**, Rai
 <div align="center">
 
 ### ⚡ Team **Bits & Bytes**
+**Indian Institute of Technology Guwahati (IIT Guwahati)**  
 *Innovating for Disaster Resilience & Mountain Community Safety*  
 **Smart India Hackathon 2026 — Problem Statement SIH 26001**
 
 </div>
 
-| Role | Member Name | Technical Specialization & Contribution |
-|:---:|:---|:---|
-| 👑 **Team Leader** | **Pallak Devi** | **Project Orchestration & Disaster Policy:** Operational workflow design, NDMA SOP directive alignment, and system presentation leadership. |
-| 💻 **Core Engineering** | **Harsh Deep Chak** | **Full-Stack Architecture & Cloud Deployment:** End-to-end platform integration, NASA ASF Sentinel-1 satellite client, Web Audio/Speech engines, and production CI/CD. |
-| 🧠 **ML & Data Science** | **Irmin Mittal** | **Physics-Informed ML & Statistical Inference:** Two-stage susceptibility & trigger fusion, XGBoost training, and Isotonic probability calibration. |
-| 👁️ **Computer Vision** | **Himani Parmar** | **Computer Vision & Citizen Intelligence:** OpenCV tensile fracture detection, Hough line shear transforms, and mudflow segmentation algorithms. |
-| 🗺️ **Geospatial GIS** | **Gautam Kashyap** | **Geomorphic GIS & Regional Calibration:** 8-state pan-Northeast spatial mapping, 132-district telemetry calibration, and multi-layer soil hydrology. |
-| 🛡️ **Humanitarian Logistics** | **Vineet Shiroda** | **Suraksha Setu & Emergency Protocols:** Safe haven poly-shelter allocation, road blockage detour simulations, and offline 112 cellular SMS SOS architecture. |
+| Role | Member Name | Institute | Technical Specialization & Contribution |
+|:---:|:---|:---:|:---|
+| 👑 **Team Leader** | **Pallak Devi** | **IIT Guwahati** | **Project Orchestration & Disaster Policy:** Operational workflow design, NDMA SOP directive alignment, and system presentation leadership. |
+| 💻 **Core Engineering** | **Harsh Deep Chak** | **IIT Guwahati** | **Full-Stack Architecture & Cloud Deployment:** End-to-end platform integration, NASA ASF Sentinel-1 satellite client, Web Audio/Speech engines, and production CI/CD. |
+| 🧠 **ML & Data Science** | **Irmin Mittal** | **IIT Guwahati** | **Physics-Informed ML & Statistical Inference:** Two-stage susceptibility & trigger fusion, XGBoost training, and Isotonic probability calibration. |
+| 👁️ **Computer Vision** | **Himani Parmar** | **IIT Guwahati** | **Computer Vision & Citizen Intelligence:** OpenCV tensile fracture detection, Hough line shear transforms, and mudflow segmentation algorithms. |
+| 🗺️ **Geospatial GIS** | **Gautam Kashyap** | **IIT Guwahati** | **Geomorphic GIS & Regional Calibration:** 8-state pan-Northeast spatial mapping, 132-district telemetry calibration, and multi-layer soil hydrology. |
+| 🛡️ **Humanitarian Logistics** | **Vineet Shiroda** | **IIT Guwahati** | **Suraksha Setu & Emergency Protocols:** Safe haven poly-shelter allocation, road blockage detour simulations, and offline 112 cellular SMS SOS architecture. |
 
 <br/>
 
