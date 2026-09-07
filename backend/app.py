@@ -126,7 +126,10 @@ def health():
     weather_configured = bool(weather_key)
     ai_configured = bool(
         os.environ.get("AI_PROVIDER")
-        and (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY"))
+        or os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("GROQ_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or os.environ.get("ANTHROPIC_API_KEY")
     )
     return jsonify(
         {
@@ -364,6 +367,20 @@ def corridor_insar_telemetry(corridor_id):
     return jsonify(insar_service.get_insar_for_corridor(corridor_id))
 
 
+@app.get("/api/insar/live")
+def live_insar_by_coords():
+    lat = request.args.get("lat") or request.args.get("latitude")
+    lon = request.args.get("lon") or request.args.get("longitude")
+    if lat is None or lon is None:
+        return jsonify({"error": "Latitude and longitude query params are required"}), 400
+    try:
+        lat_f = float(lat)
+        lon_f = float(lon)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid coordinates"}), 400
+    return jsonify(insar_service.get_insar_for_coords(lat_f, lon_f))
+
+
 # ------------------------------------------------------------- live weather --
 @app.get("/api/weather/live")
 def live_weather_by_coords():
@@ -545,7 +562,10 @@ def create_report():
         photo_filename = f"{uuid.uuid4().hex}.{ext}"
         photo.save(os.path.join(UPLOAD_DIR, photo_filename))
 
-    category, confidence = evidence_classifier.classify(description, has_photo=photo_filename is not None)
+    photo_path = os.path.join(UPLOAD_DIR, photo_filename) if photo_filename else None
+    category, confidence = evidence_classifier.classify(
+        description, has_photo=photo_filename is not None, photo_path=photo_path
+    )
 
     cur = conn.execute(
         """INSERT INTO citizen_reports
@@ -611,10 +631,25 @@ def explain_risk():
     latest_risk_row = conn.execute(
         "SELECT * FROM risk_snapshots WHERE corridor_id=? ORDER BY timestamp DESC LIMIT 1", (corridor_id,)
     ).fetchone()
+    latest_sensor_row = conn.execute(
+        "SELECT * FROM sensor_readings WHERE corridor_id=? ORDER BY timestamp DESC LIMIT 1", (corridor_id,)
+    ).fetchone()
+    village_rows = conn.execute(
+        "SELECT name, population_estimate, alternate_route_available FROM villages WHERE corridor_id=?", (corridor_id,)
+    ).fetchall()
+    road_rows = conn.execute(
+        "SELECT name, criticality FROM road_segments WHERE corridor_id=?", (corridor_id,)
+    ).fetchall()
     conn.close()
 
     snapshot = snapshot_dict(latest_risk_row)
-    answer, mode = explain_service.explain(corridor, snapshot, question)
+    sensor = reading_dict(latest_sensor_row) if latest_sensor_row else None
+    telemetry = {
+        "sensor_reading": sensor,
+        "villages": [dict(v) for v in village_rows],
+        "roads": [dict(r) for r in road_rows],
+    }
+    answer, mode = explain_service.explain(corridor, snapshot, question, telemetry=telemetry)
     return jsonify({"answer": answer, "mode": mode})
 
 

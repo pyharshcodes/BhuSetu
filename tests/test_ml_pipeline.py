@@ -21,6 +21,9 @@ import numpy as np
 
 # Ensure project root in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+BACKEND_DIR = os.path.join(PROJECT_ROOT, "backend")
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -131,29 +134,45 @@ class TestMLPipeline(unittest.TestCase):
         self.assertEqual(res_oob['error'], 'COORDINATES_OUT_OF_BOUNDS')
 
     def test_08_live_http_prediction_api(self):
-        """Verifies POST /api/predict-risk over actual HTTP endpoint."""
+        """Verifies POST /api/predict-risk over actual HTTP endpoint or test client."""
         url = "http://127.0.0.1:8000/api/predict-risk"
         payload = json.dumps({'latitude': 25.18, 'longitude': 93.03}).encode('utf-8')
-        req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            self.assertEqual(resp.status, 200)
-            data = json.loads(resp.read().decode('utf-8'))
-            self.assertIn('prediction', data)
-            self.assertIn('data_sources', data)
-            self.assertIn('features', data)
-            self.assertEqual(data['data_sources']['weather'], 'LIVE (OpenWeather API)')
-            self.assertEqual(data['data_sources']['soil_moisture'], 'LIVE (Open-Meteo Land Telemetry)')
+        try:
+            req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                self.assertEqual(resp.status, 200)
+                data = json.loads(resp.read().decode('utf-8'))
+        except (urllib.error.URLError, ConnectionRefusedError, OSError):
+            from app import app
+            with app.test_client() as client:
+                res = client.post('/api/predict-risk', json={'latitude': 25.18, 'longitude': 93.03})
+                self.assertEqual(res.status_code, 200)
+                data = res.get_json()
+
+        self.assertIn('prediction', data)
+        self.assertIn('data_sources', data)
+        self.assertIn('features', data)
+        self.assertEqual(data['data_sources']['weather'], 'LIVE (OpenWeather API)')
+        self.assertEqual(data['data_sources']['soil_moisture'], 'LIVE (Open-Meteo Land Telemetry)')
 
     def test_09_ml_metadata_api(self):
         """Verifies GET /api/ml/metadata returns full training audit report."""
         url = "http://127.0.0.1:8000/api/ml/metadata"
-        with urllib.request.urlopen(url, timeout=5) as resp:
-            self.assertEqual(resp.status, 200)
-            meta = json.loads(resp.read().decode('utf-8'))
-            self.assertEqual(meta['model_version'], '2.0.0')
-            self.assertIn('benchmarks', meta)
-            self.assertIn('xgboost_uncalibrated', meta['benchmarks'])
-            self.assertIn('final_calibrated_model', meta['benchmarks'])
+        try:
+            with urllib.request.urlopen(url, timeout=4) as resp:
+                self.assertEqual(resp.status, 200)
+                meta = json.loads(resp.read().decode('utf-8'))
+        except (urllib.error.URLError, ConnectionRefusedError, OSError):
+            from app import app
+            with app.test_client() as client:
+                res = client.get('/api/ml/metadata')
+                self.assertEqual(res.status_code, 200)
+                meta = res.get_json()
+
+        self.assertEqual(meta['model_version'], '2.0.0')
+        self.assertIn('benchmarks', meta)
+        self.assertIn('xgboost_uncalibrated', meta['benchmarks'])
+        self.assertIn('final_calibrated_model', meta['benchmarks'])
 
 
 if __name__ == '__main__':
