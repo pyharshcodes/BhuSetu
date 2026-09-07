@@ -4,6 +4,10 @@ import {
   radialDonutChart, districtGeospatialMap, riskTrendChart,
   communityReportsGrid, keyFactorsCard, recentAlertsCard, ICONS
 } from "../ui.js";
+import {
+  openSitRepModal, playEmergencySiren, stopEmergencySiren,
+  isSirenPlaying, speakEmergencyBroadcast
+} from "../emergency_intel.js";
 
 let currentCorridorId = null;
 let currentStateFilter = "Assam";
@@ -101,7 +105,7 @@ function renderCommandDashboard(page, grid, corridorId, corridors, overview, cor
   const heroHeader = renderHeroHeader(corridors, corridorId, (newId, newState) => {
     if (newState) currentStateFilter = newState;
     onCorridorChange(newId);
-  });
+  }, corridorDetail, overview);
   page.appendChild(heroHeader);
 
   // 2. TOP 4 KPI CARDS (21 Districts, 126 Road Segments, 482 Villages, 1.2M People Affected)
@@ -186,7 +190,7 @@ function renderCommandDashboard(page, grid, corridorId, corridors, overview, cor
 // -------------------------------------------------------------
 // Component 1: Hero Header with Quote & Breadcrumb Filter
 // -------------------------------------------------------------
-function renderHeroHeader(corridors, selectedId, onChange) {
+function renderHeroHeader(corridors, selectedId, onChange, corridorDetail = null, overview = null) {
   const states = Array.from(new Set(corridors.map((c) => c.state))).sort();
   if (!states.includes("Assam") && states.length) currentStateFilter = states[0];
 
@@ -223,6 +227,21 @@ function renderHeroHeader(corridors, selectedId, onChange) {
     )
   );
 
+  const sitrepBtn = el(
+    "button",
+    {
+      class: "btn btn-secondary btn-sitrep-export",
+      title: "Export Official NDMA / SDMA Situation Report (SitRep)",
+      onclick: () => {
+        if (corridorDetail) openSitRepModal(corridorDetail, overview || {});
+      },
+    },
+    [
+      el("span", { class: "btn-icon" }, "📄"),
+      el("span", {}, "Official SitRep"),
+    ]
+  );
+
   const container = el("div", { class: "hero-header-row" }, [
     el("div", { class: "hero-title-group" }, [
       el("h1", { class: "hero-main-title" }, "BhuSetu — Landslide Early Warning System"),
@@ -232,6 +251,7 @@ function renderHeroHeader(corridors, selectedId, onChange) {
       el("div", { class: "filter-dropdown-wrap" }, [countrySelect]),
       el("div", { class: "filter-dropdown-wrap" }, [stateSelect]),
       el("div", { class: "filter-dropdown-wrap" }, [districtSelect]),
+      sitrepBtn,
     ]),
   ]);
 
@@ -640,7 +660,41 @@ function renderDashboardSmsCard(corridors, corridorId, riskScore, alertLevel, vi
     }, 900);
   });
 
-  body.appendChild(sendBtn);
+  // Audio Siren & Voice Broadcast Button (Option 4)
+  const sirenBtn = el("button", {
+    class: "btn btn-secondary siren-alert-btn",
+    type: "button",
+    title: "Sound emergency dual-tone siren and vernacular voice broadcast",
+  }, [
+    el("span", { class: "btn-icon" }, "🚨"),
+    el("span", { class: "siren-btn-text" }, "Play Siren & Voice"),
+  ]);
+
+  sirenBtn.addEventListener("click", () => {
+    if (isSirenPlaying()) {
+      stopEmergencySiren();
+      sirenBtn.classList.remove("siren-active");
+      sirenBtn.querySelector(".siren-btn-text").textContent = "Play Siren & Voice";
+    } else {
+      playEmergencySiren(6);
+      speakEmergencyBroadcast(textarea.value, langSelect.value);
+      sirenBtn.classList.add("siren-active");
+      sirenBtn.querySelector(".siren-btn-text").textContent = "Stop Siren";
+      setTimeout(() => {
+        if (!isSirenPlaying()) {
+          sirenBtn.classList.remove("siren-active");
+          sirenBtn.querySelector(".siren-btn-text").textContent = "Play Siren & Voice";
+        }
+      }, 6200);
+    }
+  });
+
+  const btnRow = el("div", { class: "sms-action-btns-row" }, [
+    sendBtn,
+    sirenBtn,
+  ]);
+
+  body.appendChild(btnRow);
   body.appendChild(feedbackBox);
 
   container.appendChild(body);

@@ -304,6 +304,10 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
   ]);
   page.appendChild(statsRow);
 
+  // 2.5 INTERACTIVE SAFE-ROUTE NAVIGATOR & ROAD BLOCKAGE SIMULATOR (Option 3)
+  const navigatorCard = renderRouteBlockageSimulatorCard(corridorDetail, EVACUATION_PAIRS);
+  page.appendChild(navigatorCard);
+
   // 3. SEARCH & FILTER CONTROLS
   const controlsCard = el("div", { class: "card suraksha-controls-card" });
   const controlsBar = el("div", { class: "suraksha-controls-bar" });
@@ -567,4 +571,264 @@ function renderBridgeCard(p, globalNotice, existingActivations = [], corridorId 
   });
 
   return card;
+}
+
+// -------------------------------------------------------------------------
+// Option 3: Interactive Safe-Route Navigator with Landslide Road Blockage Simulator
+// -------------------------------------------------------------------------
+function renderRouteBlockageSimulatorCard(corridorDetail, evacuationPairs) {
+  const container = el("div", { class: "card suraksha-navigator-card", style: "margin-bottom: 24px;" });
+  
+  // Find current pair or default to first
+  let selectedPair = evacuationPairs.find(
+    (p) => corridorDetail && corridorDetail.corridor && (p.district.includes(corridorDetail.corridor.name) || p.corridorId === corridorDetail.corridor.id)
+  ) || evacuationPairs[0];
+
+  let isRoadBlocked = false;
+
+  const cardHeader = el("div", { class: "navigator-card-header flex-between" }, [
+    el("div", {}, [
+      el("div", { class: "navigator-badge" }, [
+        el("span", { class: "pulse-beacon-dot" }),
+        "DYNAMIC GEOSPATIAL LOGISTICS & OBSTACLE SIMULATOR",
+      ]),
+      el("h3", { class: "card-title", style: "font-size: 1.15rem; margin-top: 4px;" }, "Interactive Safe-Route Navigator with Road Blockage Simulator"),
+      el("p", { class: "muted tiny", style: "margin-top: 2px;" },
+        "Simulates sudden landslide debris flow choking primary highway axis with autonomous re-routing to mountain ridge bypass."
+      ),
+    ]),
+    el("div", { class: "navigator-selector-wrap" }, [
+      el("label", { class: "tiny muted text-bold" }, "SDRF Evacuation Sector:"),
+      el("select", {
+        class: "filter-dropdown nav-sector-select",
+        onchange: (e) => {
+          const found = evacuationPairs.find((p) => p.id === e.target.value);
+          if (found) {
+            selectedPair = found;
+            isRoadBlocked = false;
+            updateUI();
+          }
+        },
+      }, evacuationPairs.map((p) => el("option", { value: p.id, ...(p.id === selectedPair.id ? { selected: "selected" } : {}) }, `${p.originVillage} ➔ ${p.destShelter.slice(0, 24)}… (${p.district})`))),
+    ]),
+  ]);
+
+  // Main interactive body
+  const bodyGrid = el("div", { class: "navigator-body-grid" });
+
+  // Left panel: Telemetry & Controls
+  const leftPanel = el("div", { class: "navigator-telemetry-panel" });
+
+  // Right panel: Leaflet Map
+  const rightPanel = el("div", { class: "navigator-map-panel" });
+  const mapDivId = "suraksha-route-leaflet-map-" + Math.floor(Math.random() * 10000);
+  const mapContainer = el("div", {
+    id: mapDivId,
+    class: "suraksha-route-leaflet-map",
+    style: "width: 100%; height: 380px; border-radius: 10px; z-index: 1;",
+  });
+  rightPanel.appendChild(mapContainer);
+
+  bodyGrid.appendChild(leftPanel);
+  bodyGrid.appendChild(rightPanel);
+
+  container.appendChild(cardHeader);
+  container.appendChild(bodyGrid);
+
+  let map = null;
+  let primaryPolyline = null;
+  let bypassPolyline = null;
+  let originMarker = null;
+  let destMarker = null;
+  let blockageMarker = null;
+
+  function getWaypoints(pair) {
+    const baseLat = Number(corridorDetail.corridor && corridorDetail.corridor.center_lat) || 25.180;
+    const baseLon = Number(corridorDetail.corridor && corridorDetail.corridor.center_lon) || 93.030;
+    
+    // Deterministic offset based on pair name
+    const seed = (pair.originVillage.charCodeAt(0) % 5) * 0.008;
+
+    const origin = [baseLat - 0.035 - seed, baseLon - 0.025 - seed];
+    const dest = [baseLat + 0.032 + seed, baseLon + 0.022 + seed];
+    const blockage = [baseLat - 0.002, baseLon - 0.005];
+
+    const primaryRoute = [
+      origin,
+      [baseLat - 0.020 - seed, baseLon - 0.015],
+      blockage,
+      [baseLat + 0.015, baseLon + 0.008],
+      dest,
+    ];
+
+    const bypassRoute = [
+      origin,
+      [baseLat - 0.028 - seed, baseLon + 0.018],
+      [baseLat - 0.005, baseLon + 0.032],
+      [baseLat + 0.018, baseLon + 0.028],
+      dest,
+    ];
+
+    return { origin, dest, blockage, primaryRoute, bypassRoute };
+  }
+
+  function initOrUpdateMap() {
+    if (!window.L) return;
+    const mapEl = document.getElementById(mapDivId);
+    if (!mapEl) return;
+
+    const { origin, dest, blockage, primaryRoute, bypassRoute } = getWaypoints(selectedPair);
+
+    if (!map) {
+      map = window.L.map(mapDivId, {
+        zoomControl: true,
+        attributionControl: false,
+      }).setView(blockage, 12);
+      container._leafletMap = map;
+
+      window.L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 16,
+      }).addTo(map);
+
+      // Primary Route
+      primaryPolyline = window.L.polyline(primaryRoute, {
+        color: "#0ea5e9",
+        weight: 5,
+        opacity: 0.9,
+      }).addTo(map);
+
+      // Bypass Route
+      bypassPolyline = window.L.polyline(bypassRoute, {
+        color: "#f59e0b",
+        weight: 3,
+        dashArray: "6, 8",
+        opacity: 0.5,
+      }).addTo(map);
+
+      // Markers
+      originMarker = window.L.circleMarker(origin, {
+        radius: 9,
+        fillColor: "#ef4444",
+        color: "#ffffff",
+        weight: 2,
+        fillOpacity: 0.95,
+      }).addTo(map).bindPopup(`<strong>Origin: ${selectedPair.originVillage}</strong><br/>Pop: ${selectedPair.originPop.toLocaleString()}<br/>Hazard: High Slope Slippage`);
+
+      destMarker = window.L.circleMarker(dest, {
+        radius: 10,
+        fillColor: "#10b981",
+        color: "#ffffff",
+        weight: 2,
+        fillOpacity: 0.95,
+      }).addTo(map).bindPopup(`<strong>Safe Haven: ${selectedPair.destShelter}</strong><br/>Capacity: ${selectedPair.destCapacity.toLocaleString()} beds<br/>Risk: LOW (Stable Ridge)`);
+
+      blockageMarker = window.L.circleMarker(blockage, {
+        radius: 12,
+        fillColor: "#dc2626",
+        color: "#fef08a",
+        weight: 3,
+        fillOpacity: 0.95,
+      }).bindPopup(`<strong>🚨 ROAD SEVERED: 450m³ Debris Flow</strong><br/>Primary Axis Choked at KM 3.2<br/>PWD earthmovers mobilized.`);
+    } else {
+      primaryPolyline.setLatLngs(primaryRoute);
+      bypassPolyline.setLatLngs(bypassRoute);
+      originMarker.setLatLng(origin).setPopupContent(`<strong>Origin: ${selectedPair.originVillage}</strong><br/>Pop: ${selectedPair.originPop.toLocaleString()}`);
+      destMarker.setLatLng(dest).setPopupContent(`<strong>Safe Haven: ${selectedPair.destShelter}</strong><br/>Capacity: ${selectedPair.destCapacity.toLocaleString()} beds`);
+      blockageMarker.setLatLng(blockage);
+    }
+
+    if (isRoadBlocked) {
+      primaryPolyline.setStyle({ color: "#ef4444", weight: 5, dashArray: "6, 10", opacity: 0.85 });
+      bypassPolyline.setStyle({ color: "#10b981", weight: 6, dashArray: null, opacity: 0.95 });
+      if (!map.hasLayer(blockageMarker)) blockageMarker.addTo(map);
+      blockageMarker.openPopup();
+    } else {
+      primaryPolyline.setStyle({ color: "#0ea5e9", weight: 5, dashArray: null, opacity: 0.9 });
+      bypassPolyline.setStyle({ color: "#f59e0b", weight: 3, dashArray: "6, 8", opacity: 0.5 });
+      if (map.hasLayer(blockageMarker)) map.removeLayer(blockageMarker);
+    }
+
+    const group = window.L.featureGroup([primaryPolyline, bypassPolyline]);
+    map.fitBounds(group.getBounds().pad(0.15));
+  }
+
+  function updateUI() {
+    leftPanel.innerHTML = "";
+
+    const activeDist = isRoadBlocked ? (selectedPair.distanceKm + 5.4).toFixed(1) : selectedPair.distanceKm;
+    const activeTime = isRoadBlocked ? selectedPair.transitTimeMin + 16 : selectedPair.transitTimeMin;
+    const activeRouteName = isRoadBlocked ? `Alternate Ridge Bypass (${selectedPair.transitRoute})` : `Primary Highway Axis (Main Direct Route)`;
+    const activeSpeed = isRoadBlocked ? "15-20 km/h (Mountain Detour)" : "35-45 km/h (Cleared Highway)";
+
+    const statusBanner = el("div", {
+      class: `nav-status-banner ${isRoadBlocked ? "nav-status-blocked" : "nav-status-clear"}`,
+    }, [
+      el("div", { class: "status-banner-title text-bold" },
+        isRoadBlocked ? "🔴 PRIMARY AXIS CHOKED — REROUTED VIA RIDGE BYPASS" : "🟢 PRIMARY HIGHWAY CLEAR — DIRECT TRANSIT OPEN"
+      ),
+      el("div", { class: "status-banner-sub tiny" },
+        isRoadBlocked
+          ? "Mass debris flow triggered at KM 3.2. Telemetry diverted all convoys to secondary ridge bypass."
+          : "Primary highway corridor nominal. Continuous InSAR slope monitoring active."
+      ),
+    ]);
+
+    const metricsGrid = el("div", { class: "nav-metrics-grid" }, [
+      el("div", { class: "nav-metric-card" }, [
+        el("span", { class: "tiny muted text-bold" }, "ACTIVE TRANSIT CORRIDOR"),
+        el("div", { class: "nav-metric-val", style: "font-size: 0.88rem; font-weight: 700; margin-top: 2px;" }, activeRouteName),
+        el("span", { class: "tiny muted" }, isRoadBlocked ? "PWD Protected Ridge Line" : "State Highway / NH"),
+      ]),
+      el("div", { class: "nav-metric-card" }, [
+        el("span", { class: "tiny muted text-bold" }, "ESTIMATED CONVOY ETA"),
+        el("div", { class: `nav-metric-val mono ${isRoadBlocked ? "text-warning" : "text-success"}`, style: "font-size: 1.25rem; font-weight: 700;" }, `~${activeTime} mins`),
+        el("span", { class: "tiny muted" }, isRoadBlocked ? "+16 min mountain penalty" : "Optimal Transit Time"),
+      ]),
+      el("div", { class: "nav-metric-card" }, [
+        el("span", { class: "tiny muted text-bold" }, "TRANSIT DISTANCE"),
+        el("div", { class: "nav-metric-val mono", style: "font-size: 1.25rem; font-weight: 700;" }, `${activeDist} km`),
+        el("span", { class: "tiny muted" }, isRoadBlocked ? "+5.4 km bypass stretch" : "Direct Highway Leg"),
+      ]),
+      el("div", { class: "nav-metric-card" }, [
+        el("span", { class: "tiny muted text-bold" }, "CONVOY TRANSIT SPEED"),
+        el("div", { class: "nav-metric-val mono", style: "font-size: 1.05rem; font-weight: 600;" }, activeSpeed),
+        el("span", { class: "tiny muted" }, isRoadBlocked ? "Single-file police escort" : "Normal all-weather pace"),
+      ]),
+    ]);
+
+    const toggleBtn = el("button", {
+      class: `btn ${isRoadBlocked ? "btn-secondary" : "btn-primary"} nav-sim-block-btn`,
+      style: "width: 100%; justify-content: center; padding: 12px; font-weight: 700; font-size: 0.95rem; margin-top: 12px;",
+      onclick: () => {
+        isRoadBlocked = !isRoadBlocked;
+        updateUI();
+      },
+    }, [
+      el("span", {}, isRoadBlocked ? "✅ Clear Debris Flow & Restore Primary Highway" : "🚨 Simulate Landslide Road Blockage (Debris Flow at KM 3.2)"),
+    ]);
+
+    const legendRow = el("div", { class: "nav-legend-row tiny muted", style: "margin-top: 14px; display: flex; flex-wrap: wrap; gap: 12px;" }, [
+      el("span", {}, [el("strong", { style: "color:#ef4444;" }, "● "), "Origin: " + selectedPair.originVillage]),
+      el("span", {}, [el("strong", { style: "color:#10b981;" }, "● "), "Safe Haven: " + selectedPair.destShelter.slice(0, 18) + "…"]),
+      el("span", {}, [el("strong", { style: "color:#0ea5e9;" }, "━ "), "Primary Highway"]),
+      el("span", {}, [el("strong", { style: "color:#10b981;" }, "━ "), "Bypass Diversion"]),
+      el("span", {}, [el("strong", { style: "color:#dc2626;" }, "⛔ "), "Debris Blockage"]),
+    ]);
+
+    leftPanel.appendChild(statusBanner);
+    leftPanel.appendChild(metricsGrid);
+    leftPanel.appendChild(toggleBtn);
+    leftPanel.appendChild(legendRow);
+
+    setTimeout(() => {
+      initOrUpdateMap();
+      if (map) map.invalidateSize();
+    }, 40);
+  }
+
+  setTimeout(() => {
+    updateUI();
+  }, 50);
+
+  return container;
 }

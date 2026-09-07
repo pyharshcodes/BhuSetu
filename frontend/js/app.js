@@ -12,6 +12,7 @@ import { SettingsView } from "./views/settings.js";
 import { ExplainView } from "./views/explain.js";
 import { RiskAnalysisView } from "./views/risk_analysis.js";
 import { SurakshaSetuView } from "./views/suraksha_setu.js";
+import { openSosModal } from "./emergency_intel.js";
 
 const appRoot = document.getElementById("app");
 const navRoot = document.getElementById("nav");
@@ -23,6 +24,7 @@ let state = {
   backendStatus: "checking", // checking | ok | down
   lastUpdated: new Date(),
   activeAlertCount: 3,
+  isOfflineMode: false,
 };
 
 const ROUTES = {
@@ -45,6 +47,16 @@ async function boot() {
   renderSidebar();
   await checkHealthAndLoadCorridors();
   window.addEventListener("hashchange", route);
+  window.addEventListener("offline", () => {
+    state.isOfflineMode = true;
+    renderHeader();
+    updateOfflineBanner();
+  });
+  window.addEventListener("online", () => {
+    state.isOfflineMode = false;
+    renderHeader();
+    updateOfflineBanner();
+  });
   if (!location.hash) location.hash = "#/";
   route();
 }
@@ -172,6 +184,24 @@ function renderHeader() {
   );
   const statusPill = el("div", { class: "header-status-pill" }, [statusDot, statusText]);
 
+  // Offline / Low-Bandwidth Mode Toggle Button
+  const offlineBtn = el(
+    "button",
+    {
+      class: `header-offline-pill offline-toggle-btn ${state.isOfflineMode ? "active" : ""}`,
+      title: state.isOfflineMode ? "Disable Offline Mode" : "Activate Offline / Low-Bandwidth Mode",
+      onclick: () => {
+        state.isOfflineMode = !state.isOfflineMode;
+        renderHeader();
+        updateOfflineBanner();
+      },
+    },
+    [
+      el("span", { class: "offline-icon" }, "📶"),
+      el("span", { class: "offline-text mono tiny" }, state.isOfflineMode ? "Offline" : "Low-BW"),
+    ]
+  );
+
   // Mobile menu button with backdrop overlay
   const menuBtn = el("button", {
     id: "menu-btn",
@@ -201,6 +231,7 @@ function renderHeader() {
   navRoot.appendChild(searchBox);
   navRoot.appendChild(
     el("div", { class: "header-right-actions" }, [
+      offlineBtn,
       themeSwitcher,
       bellBtn,
       userProfile,
@@ -208,6 +239,41 @@ function renderHeader() {
       menuBtn,
     ])
   );
+}
+
+function updateOfflineBanner() {
+  let banner = document.getElementById("offline-emergency-banner");
+  if (state.isOfflineMode) {
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "offline-emergency-banner";
+      banner.className = "offline-emergency-banner";
+      banner.innerHTML = `
+        <div class="banner-inner flex-between">
+          <div class="banner-left">
+            <span class="pulse-beacon-dot" style="background:#eab308;"></span>
+            <strong>📶 OFFLINE EMERGENCY PROTOCOL:</strong> Operating in disconnected low-bandwidth mode on local cached telemetry.
+          </div>
+          <button id="banner-sos-btn" class="btn btn-primary btn-small btn-sos-trigger" style="background:#dc2626; border-color:#ef4444; padding:4px 12px; font-weight:bold;">
+            🚨 112 Cellular SOS Beacon
+          </button>
+        </div>
+      `;
+      const navEl = document.getElementById("nav");
+      if (navEl && navEl.parentNode) {
+        navEl.parentNode.insertBefore(banner, navEl.nextSibling);
+      }
+      const sosBtn = document.getElementById("banner-sos-btn");
+      if (sosBtn) {
+        sosBtn.onclick = () => {
+          const corridor = state.corridors.find(c => c.id === state.selectedCorridorId) || state.corridors[0];
+          openSosModal({ corridor, villages: [], latest_risk: { fused_risk_score: 85, alert_level: "RED" } });
+        };
+      }
+    }
+  } else {
+    if (banner) banner.remove();
+  }
 }
 
 function renderSidebar() {

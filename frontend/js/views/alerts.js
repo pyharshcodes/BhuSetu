@@ -1,5 +1,8 @@
 import { api } from "../api.js";
 import { el, alertBadge, loadingBlock, errorBlock, emptyBlock, formatTime, ICONS } from "../ui.js";
+import {
+  playEmergencySiren, stopEmergencySiren, isSirenPlaying, speakEmergencyBroadcast
+} from "../emergency_intel.js";
 
 // Regional Languages supported for Northeast India & National Disaster Management
 const LANGUAGES = [
@@ -158,6 +161,30 @@ function alertCard(alert, broadcastConsole) {
           el("span", { html: ICONS.broadcast }),
           el("span", {}, "Dispatch Local SMS"),
         ]
+      ),
+      el(
+        "button",
+        {
+          class: "btn btn-secondary btn-small alert-siren-btn",
+          title: "Sound dual-tone synthetic siren and vernacular voice broadcast",
+          onclick: (e) => {
+            const btn = e.currentTarget;
+            if (isSirenPlaying()) {
+              stopEmergencySiren();
+              btn.innerHTML = `<span>🚨 Sound Siren</span>`;
+            } else {
+              playEmergencySiren(5);
+              speakEmergencyBroadcast(`Critical landslide alert for ${alert.corridor_name}. Fused risk score ${alert.fused_risk_score} out of 100. Threat level ${alert.alert_level}. Evacuate vulnerable slopes immediately.`, "en");
+              btn.innerHTML = `<span>⏹️ Stop Siren</span>`;
+              setTimeout(() => {
+                if (!isSirenPlaying()) {
+                  btn.innerHTML = `<span>🚨 Sound Siren</span>`;
+                }
+              }, 5200);
+            }
+          },
+        },
+        [el("span", {}, "🚨 Sound Siren")]
       ),
       el(
         "a",
@@ -476,7 +503,35 @@ function renderBroadcastConsole() {
         el("span", {}, state.isTransmitting ? "Connecting to Telecom Cell Towers…" : "Transmit Emergency SMS Broadcast Now"),
       ]
     );
-    leftCol.appendChild(transmitBtn);
+    const broadcastSirenBtn = el(
+      "button",
+      {
+        class: "btn btn-secondary btn-broadcast-siren",
+        title: "Test vernacular voice alert and sound siren",
+        onclick: () => {
+          if (isSirenPlaying()) {
+            stopEmergencySiren();
+            broadcastSirenBtn.innerHTML = `<span>🚨 Play Audio Alert & Siren</span>`;
+          } else {
+            playEmergencySiren(6);
+            speakEmergencyBroadcast(state.messageText, state.language);
+            broadcastSirenBtn.innerHTML = `<span>⏹️ Stop Siren</span>`;
+            setTimeout(() => {
+              if (!isSirenPlaying()) {
+                broadcastSirenBtn.innerHTML = `<span>🚨 Play Audio Alert & Siren</span>`;
+              }
+            }, 6200);
+          }
+        },
+      },
+      [el("span", {}, "🚨 Play Audio Alert & Siren")]
+    );
+
+    const transmitRow = el("div", { class: "transmit-action-row", style: "display: flex; gap: 10px; margin-top: 10px;" }, [
+      transmitBtn,
+      broadcastSirenBtn,
+    ]);
+    leftCol.appendChild(transmitRow);
 
     if (state.lastDispatch) {
       leftCol.appendChild(renderSuccessCard(state.lastDispatch));
