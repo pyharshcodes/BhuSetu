@@ -422,6 +422,15 @@ export function districtGeospatialMap({
           <button class="layer-btn" id="${mapId}-btn-dark" title="Dark Command GIS">Dark</button>
           <button class="layer-btn" id="${mapId}-btn-topo" title="Terrain & Roads">Topo</button>
         </div>
+        <div class="map-radar-toggle-group">
+          <button class="radar-toggle-btn" id="${mapId}-btn-radar" title="Toggle Live RainViewer Doppler Weather Radar">
+            <span class="radar-live-indicator"></span>
+            <span>🌧️ Doppler Radar</span>
+          </button>
+          <button class="radar-toggle-btn" id="${mapId}-btn-clouds" title="Toggle Satellite Cloud & Precipitation Layer">
+            <span>☁️ Clouds</span>
+          </button>
+        </div>
         <div class="map-zoom-buttons">
           <button class="map-ctrl-btn" id="${mapId}-zoom-in" title="Zoom In">+</button>
           <button class="map-ctrl-btn" id="${mapId}-zoom-out" title="Zoom Out">−</button>
@@ -503,6 +512,61 @@ export function districtGeospatialMap({
       if (btnSat) btnSat.onclick = () => setLayer(satLayer, btnSat);
       if (btnDark) btnDark.onclick = () => setLayer(darkLayer, btnDark);
       if (btnTopo) btnTopo.onclick = () => setLayer(topoLayer, btnTopo);
+
+      // Live Doppler Radar & Cloud Satellite Overlays
+      let dopplerRadarLayer = null;
+      let cloudSatelliteLayer = null;
+      let radarPath = "/v2/radar/cbb8d83d682d";
+
+      // Dynamically fetch latest RainViewer radar composite timestamp
+      fetch("https://api.rainviewer.com/public/weather-maps.json")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.radar && data.radar.past && data.radar.past.length) {
+            radarPath = data.radar.past[data.radar.past.length - 1].path;
+          }
+        })
+        .catch(() => {});
+
+      const btnRadar = container.querySelector(`#${mapId}-btn-radar`);
+      const btnClouds = container.querySelector(`#${mapId}-btn-clouds`);
+
+      if (btnRadar) {
+        btnRadar.onclick = () => {
+          if (dopplerRadarLayer) {
+            map.removeLayer(dopplerRadarLayer);
+            dopplerRadarLayer = null;
+            btnRadar.classList.remove("active");
+          } else {
+            const cleanPath = radarPath.startsWith("/") ? radarPath : `/${radarPath}`;
+            dopplerRadarLayer = L.tileLayer(`https://tilecache.rainviewer.com${cleanPath}/256/{z}/{x}/{y}/2/1_1.png`, {
+              opacity: 0.72,
+              zIndex: 500,
+              maxZoom: 18,
+            });
+            dopplerRadarLayer.addTo(map);
+            btnRadar.classList.add("active");
+          }
+        };
+      }
+
+      if (btnClouds) {
+        btnClouds.onclick = () => {
+          if (cloudSatelliteLayer) {
+            map.removeLayer(cloudSatelliteLayer);
+            cloudSatelliteLayer = null;
+            btnClouds.classList.remove("active");
+          } else {
+            cloudSatelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Specialty/World_Precipitation/MapServer/tile/{z}/{y}/{x}", {
+              opacity: 0.60,
+              zIndex: 480,
+              maxZoom: 16,
+            });
+            cloudSatelliteLayer.addTo(map);
+            btnClouds.classList.add("active");
+          }
+        };
+      }
 
       // Zoom controls
       const btnPlus = container.querySelector(`#${mapId}-zoom-in`);

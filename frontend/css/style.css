@@ -2265,6 +2265,29 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   transform: scale(1.01);
   opacity: 0.95;
   transition: opacity 0.3s ease, filter 0.3s ease;
+  animation: himalayanMistDrift 28s ease-in-out infinite alternate;
+  will-change: transform, filter;
+}
+
+@keyframes himalayanMistDrift {
+  0% {
+    transform: scale(1.01) translate(0, 0);
+    filter: blur(1px) brightness(0.68) contrast(1.1);
+  }
+  50% {
+    transform: scale(1.05) translate(-10px, -6px);
+    filter: blur(0.8px) brightness(0.74) contrast(1.12);
+  }
+  100% {
+    transform: scale(1.01) translate(0, 0);
+    filter: blur(1px) brightness(0.68) contrast(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disaster-bg-backdrop {
+    animation: none;
+  }
 }
 
 .disaster-bg-overlay {
@@ -2286,6 +2309,315 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 
 [data-theme="light"] .disaster-bg-overlay {
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.65) 0%, rgba(241, 245, 249, 0.85) 100%);
+}
+
+/* =========================================================================
+   Vernacular Language Switcher Pill Styles (EN / हिन्दी / অসমীয়া)
+   ========================================================================= */
+.header-lang-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 2px 3px;
+  gap: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .header-lang-toggle-group {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.lang-toggle-pill-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink-secondary, #94a3b8);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lang-toggle-pill-btn:hover:not(.active) {
+  color: var(--ink-primary, #f8fafc);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lang-toggle-pill-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  box-shadow: 0 1px 6px rgba(2, 132, 199, 0.4);
+}
+
+[data-theme="light"] .lang-toggle-pill-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+}
+
+/* =========================================================================
+   Live Doppler Weather Radar Controls & Badge
+   ========================================================================= */
+.map-radar-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+
+.radar-toggle-btn {
+  background: rgba(15, 23, 42, 0.85);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.radar-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+}
+
+.radar-toggle-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.45);
+}
+
+.radar-live-indicator {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10b981;
+  animation: radarBeaconPing 1.6s infinite;
+}
+
+@keyframes radarBeaconPing {
+  0% { transform: scale(0.9); opacity: 0.9; }
+  50% { transform: scale(1.4); opacity: 0.4; }
+  100% { transform: scale(0.9); opacity: 0.9; }
+}
+
+/* =========================================================================
+   Citizen Panic SOS Beacon Card & Emergency Modal
+   ========================================================================= */
+.panic-sos-banner-card {
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.82) 0%, rgba(69, 10, 10, 0.92) 100%);
+  border: 2px solid #ef4444;
+  border-radius: 16px;
+  padding: 18px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(220, 38, 38, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.panic-sos-banner-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: panicSweep 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes panicSweep {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+.panic-sos-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.panic-sos-title-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panic-sos-pulsing-icon {
+  font-size: 2rem;
+  line-height: 1;
+  animation: pulse-beacon 1s infinite alternate;
+}
+
+.panic-sos-title {
+  font-size: 1.22rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.panic-sos-subtitle {
+  font-size: 0.84rem;
+  color: rgba(254, 202, 202, 0.9);
+  max-width: 680px;
+  line-height: 1.45;
+  margin-top: 3px;
+}
+
+.panic-sos-btn {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #ffffff;
+  border: 2px solid #fca5a5;
+  border-radius: 12px;
+  padding: 12px 26px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.55);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.panic-sos-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 28px rgba(239, 68, 68, 0.7);
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+}
+
+.panic-sos-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Panic SOS Modal overlay */
+.panic-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeInModal 0.25s ease-out forwards;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.panic-modal-card {
+  background: #0f172a;
+  border: 2px solid #ef4444;
+  border-radius: 20px;
+  max-width: 580px;
+  width: 100%;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(239, 68, 68, 0.35);
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideUpModal 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpModal {
+  from { transform: translateY(30px) scale(0.95); }
+  to { transform: translateY(0) scale(1); }
+}
+
+.panic-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+  padding-bottom: 16px;
+}
+
+.panic-ticket-box {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.helpline-pills-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.helpline-quick-pill {
+  background: rgba(220, 38, 38, 0.15);
+  border: 1.5px solid #ef4444;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.helpline-quick-pill:hover {
+  background: #dc2626;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.5);
+}
+
+.helpline-number {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: #fca5a5;
+}
+
+.helpline-quick-pill:hover .helpline-number {
+  color: #ffffff;
+}
+
+.helpline-title {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 2px;
 }
 
 .command-main-viewport {

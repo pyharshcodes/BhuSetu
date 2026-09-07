@@ -13,6 +13,7 @@ import { ExplainView } from "./views/explain.js";
 import { RiskAnalysisView } from "./views/risk_analysis.js";
 import { SurakshaSetuView } from "./views/suraksha_setu.js";
 import { openSosModal } from "./emergency_intel.js";
+import { i18n, t } from "./i18n.js";
 
 const appRoot = document.getElementById("app");
 const navRoot = document.getElementById("nav");
@@ -43,6 +44,11 @@ const ROUTES = {
 };
 
 async function boot() {
+  i18n.subscribe(() => {
+    renderHeader();
+    renderSidebar();
+    route();
+  });
   renderHeader();
   renderSidebar();
   await checkHealthAndLoadCorridors();
@@ -96,8 +102,8 @@ function renderHeader() {
       el("img", { src: "assets/bhusetu-logo.jpg", alt: "BhuSetu Logo", class: "brand-logo-img" }),
     ]),
     el("div", { class: "brand-text-block" }, [
-      el("div", { class: "brand-title" }, "BhuSetu"),
-      el("div", { class: "brand-subtitle" }, "Safer Hills, Stronger Communities"),
+      el("div", { class: "brand-title" }, t("brand.title", "BhuSetu")),
+      el("div", { class: "brand-subtitle" }, t("brand.subtitle", "Safer Hills, Stronger Communities")),
     ]),
   ]);
 
@@ -107,7 +113,7 @@ function renderHeader() {
     el("input", {
       type: "text",
       class: "header-search-input",
-      placeholder: "Search district, village or corridor...",
+      placeholder: t("search.placeholder", "Search district, village or corridor..."),
       onkeydown: (e) => {
         if (e.key === "Enter" && e.target.value) {
           location.hash = "#/map";
@@ -115,6 +121,38 @@ function renderHeader() {
       },
     }),
     el("kbd", { class: "search-kbd tiny mono" }, "Ctrl + K"),
+  ]);
+
+  // Vernacular Language Switcher (EN / हिन्दी / অসমীয়া)
+  const currentLang = i18n.getLanguage();
+  const langSwitcher = el("div", { class: "header-lang-toggle-group", title: "Vernacular Language Switcher / भाषा चुनें / ভাষা বাছক" }, [
+    el(
+      "button",
+      {
+        class: `lang-toggle-pill-btn ${currentLang === "en" ? "active" : ""}`,
+        title: "English Interface",
+        onclick: () => i18n.setLanguage("en"),
+      },
+      "EN"
+    ),
+    el(
+      "button",
+      {
+        class: `lang-toggle-pill-btn ${currentLang === "hi" ? "active" : ""}`,
+        title: "हिन्दी इंटरफ़ेस (Hindi)",
+        onclick: () => i18n.setLanguage("hi"),
+      },
+      "हिन्दी"
+    ),
+    el(
+      "button",
+      {
+        class: `lang-toggle-pill-btn ${currentLang === "as" ? "active" : ""}`,
+        title: "অসমীয়া ইণ্টাৰফেচ (Assamese)",
+        onclick: () => i18n.setLanguage("as"),
+      },
+      "অসমীয়া"
+    ),
   ]);
 
   // Dark/Light Mode Dual Pill Switcher matching reference image
@@ -133,7 +171,7 @@ function renderHeader() {
       },
       [
         el("span", { class: "pill-icon", html: ICONS.sun }),
-        el("span", {}, "Light"),
+        el("span", {}, t("btn.light", "Light")),
       ]
     ),
     el(
@@ -149,7 +187,7 @@ function renderHeader() {
       },
       [
         el("span", { class: "pill-icon", html: ICONS.moon }),
-        el("span", {}, "Dark"),
+        el("span", {}, t("btn.dark", "Dark")),
       ]
     ),
   ]);
@@ -165,8 +203,8 @@ function renderHeader() {
   const userProfile = el("div", { class: "header-user-profile" }, [
     el("div", { class: "user-avatar-circle" }, "HC"),
     el("div", { class: "user-meta-text" }, [
-      el("span", { class: "user-name" }, "Hello, Harsh"),
-      el("span", { class: "user-team muted tiny mono" }, "Team SIH26001"),
+      el("span", { class: "user-name" }, t("user.hello", "Hello, Harsh")),
+      el("span", { class: "user-team muted tiny mono" }, t("user.team", "Team SIH26001")),
     ]),
   ]);
 
@@ -179,8 +217,8 @@ function renderHeader() {
     "span",
     { class: "muted tiny mono" },
     state.backendStatus === "ok"
-      ? (state.simulationMode ? "Simulated" : "Live")
-      : "Offline"
+      ? (state.simulationMode ? t("mode.simulated", "Simulated") : t("mode.live", "Live"))
+      : t("mode.offline", "Offline")
   );
   const statusPill = el("div", { class: "header-status-pill" }, [statusDot, statusText]);
 
@@ -198,7 +236,7 @@ function renderHeader() {
     },
     [
       el("span", { class: "offline-icon" }, "📶"),
-      el("span", { class: "offline-text mono tiny" }, state.isOfflineMode ? "Offline" : "Low-BW"),
+      el("span", { class: "offline-text mono tiny" }, state.isOfflineMode ? t("mode.offline", "Offline") : t("btn.low_bw", "Low-BW")),
     ]
   );
 
@@ -231,6 +269,7 @@ function renderHeader() {
   navRoot.appendChild(searchBox);
   navRoot.appendChild(
     el("div", { class: "header-right-actions" }, [
+      langSwitcher,
       offlineBtn,
       themeSwitcher,
       bellBtn,
@@ -283,22 +322,22 @@ function renderSidebar() {
   const hash = location.hash || "#/";
 
   const navItems = [
-    { href: "#/dashboard", label: "Dashboard", icon: ICONS.dashboard },
-    { href: "#/risk-analysis", label: "Risk Analysis", icon: ICONS.peak },
-    { href: "#/suraksha-setu", label: "Suraksha Setu", icon: ICONS.shield },
-    { href: "#/weather", label: "Live Monitoring", icon: ICONS.radar },
-    { href: "#/map", label: "Map View", icon: ICONS.map },
-    { href: "#/reports", label: "Field Reports", icon: ICONS.reports },
-    { href: "#/community", label: "Citizen Reports", icon: ICONS.community },
-    { href: "#/alerts", label: "Alerts & SMS Broadcast", icon: ICONS.broadcast },
-    { href: "#/explain", label: "Explain / Ask", icon: ICONS.explain },
-    { href: "#/settings", label: "Settings", icon: ICONS.settings },
+    { href: "#/dashboard", label: t("nav.dashboard", "Dashboard"), defaultLabel: "Dashboard", icon: ICONS.dashboard },
+    { href: "#/risk-analysis", label: t("nav.analysis", "Risk Analysis"), defaultLabel: "Risk Analysis", icon: ICONS.peak },
+    { href: "#/suraksha-setu", label: t("nav.suraksha", "Suraksha Setu"), defaultLabel: "Suraksha Setu", icon: ICONS.shield },
+    { href: "#/weather", label: t("nav.weather", "Live Monitoring"), defaultLabel: "Live Monitoring", icon: ICONS.radar },
+    { href: "#/map", label: t("nav.map", "Map View"), defaultLabel: "Map View", icon: ICONS.map },
+    { href: "#/reports", label: t("nav.reports", "Field Reports"), defaultLabel: "Field Reports", icon: ICONS.reports },
+    { href: "#/community", label: t("nav.community", "Citizen Reports"), defaultLabel: "Citizen Reports", icon: ICONS.community },
+    { href: "#/alerts", label: t("nav.alerts", "Alerts & SMS Broadcast"), defaultLabel: "Alerts & SMS Broadcast", icon: ICONS.broadcast },
+    { href: "#/explain", label: t("nav.explain", "Explain / Ask"), defaultLabel: "Explain / Ask", icon: ICONS.explain },
+    { href: "#/settings", label: t("nav.settings", "Settings"), defaultLabel: "Settings", icon: ICONS.settings },
   ];
 
   const itemsList = el("div", { class: "sidebar-nav-list" },
     navItems.map((item) => {
-      const isDashboardActive = item.label === "Dashboard" && (hash === "#/" || hash === "#/dashboard");
-      const isOtherActive = hash === item.href && item.label !== "Dashboard";
+      const isDashboardActive = item.defaultLabel === "Dashboard" && (hash === "#/" || hash === "#/dashboard");
+      const isOtherActive = hash === item.href && item.defaultLabel !== "Dashboard";
       const isActive = isDashboardActive || isOtherActive;
 
       return el(
@@ -323,7 +362,7 @@ function renderSidebar() {
   // Bottom Slogan & Emergency Call 112 Card matching reference image
   const bottomBadge = el("div", { class: "sidebar-bottom-badge" }, [
     el("div", { class: "sidebar-slogan-text" }, [
-      el("div", { class: "slogan-top" }, "Prepared Communities"),
+      el("div", { class: "slogan-top" }, t("footer.slogan", "Prepared Communities")),
       el("div", { class: "slogan-bottom" }, "Resilient Northeast"),
     ]),
     el("a", { href: "tel:112", class: "sidebar-emergency-card" }, [

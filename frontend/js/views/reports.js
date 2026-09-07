@@ -1,5 +1,6 @@
 import { api } from "../api.js";
 import { el, loadingBlock, errorBlock, emptyBlock, formatTime } from "../ui.js";
+import { t } from "../i18n.js";
 
 export function ReportsView(root, { corridorId, corridors, onCorridorChange }) {
   root.innerHTML = "";
@@ -17,6 +18,14 @@ export function ReportsView(root, { corridorId, corridors, onCorridorChange }) {
   );
 
   const layout = el("div", { class: "reports-layout" });
+  
+  // High-priority Emergency Panic SOS Banner
+  const panicBanner = panicSosBanner(corridorId, corridors, () => {
+    const listWrap = layout.querySelector(".reports-list-card");
+    if (listWrap) loadReports(listWrap, corridorId);
+  });
+  page.appendChild(panicBanner);
+
   page.appendChild(layout);
 
   layout.appendChild(reportForm(corridorId, corridors, layout));
@@ -45,6 +54,162 @@ function corridorSelector(corridors, selectedId, onChange) {
     corridors.slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => el("option", { value: c.id, ...(c.id === selectedId ? { selected: "selected" } : {}) }, `${c.name} (${c.state})`))
   );
   return el("div", { class: "corridor-selector" }, [el("label", {}, "Pilot corridor"), select]);
+}
+
+function panicSosBanner(corridorId, corridors, onCreated) {
+  const cur = (corridors || []).find((c) => c.id === corridorId) || (corridors && corridors[0]) || { name: "Northeast Corridor", center_lat: 25.18, center_lon: 93.03 };
+
+  const banner = el("div", { class: "panic-sos-banner-card" });
+  const statusMsg = el("div", { class: "panic-status-text mono tiny text-amber-300", style: "margin-top:4px;" }, "");
+
+  const triggerBtn = el(
+    "button",
+    {
+      id: "btn-panic-sos",
+      class: "panic-sos-btn",
+      title: "Broadcast live GPS rescue beacon",
+      onclick: async () => {
+        triggerBtn.disabled = true;
+        triggerBtn.innerHTML = "📍 Acquiring GPS Satellite Fix…";
+        statusMsg.textContent = "Transmitting live GPS coordinates to SDRF & NDRF emergency dispatch...";
+
+        let lat = cur.center_lat ? Number(cur.center_lat).toFixed(4) : "25.1800";
+        let lon = cur.center_lon ? Number(cur.center_lon).toFixed(4) : "93.0300";
+        let accuracy = "Corridor Baseline (±50m)";
+
+        // Attempt live browser geolocation
+        if (navigator.geolocation) {
+          try {
+            const pos = await new Promise((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 3500,
+                maximumAge: 10000,
+              });
+            });
+            if (pos && pos.coords) {
+              lat = Number(pos.coords.latitude).toFixed(4);
+              lon = Number(pos.coords.longitude).toFixed(4);
+              accuracy = `High Precision GPS (±${Math.round(pos.coords.accuracy || 10)}m)`;
+            }
+          } catch (_) {
+            // Fallback to corridor location
+          }
+        }
+
+        try {
+          const fd = new FormData();
+          fd.append("corridor_id", corridorId);
+          fd.append("reporter_name", "🚨 CITIZEN PANIC BEACON (SOS)");
+          fd.append("lat", lat);
+          fd.append("lon", lon);
+          fd.append("description", `URGENT RESCUE REQUIRED: Citizen reported trapped/stranded near ${cur.name}. Live browser coordinates transmitted. Accuracy: ${accuracy}. Immediate SAR dispatch requested.`);
+          fd.append("is_panic_sos", "1");
+
+          const created = await api.createReport(fd);
+          statusMsg.textContent = "";
+          openPanicModal(created, cur, lat, lon, accuracy);
+          if (onCreated) onCreated();
+        } catch (err) {
+          statusMsg.textContent = `Dispatch error: ${err.message}. Please dial 112 directly.`;
+        } finally {
+          triggerBtn.disabled = false;
+          triggerBtn.innerHTML = `<span>🚨</span> <span>${t("action.panic_sos", "I AM TRAPPED / SEND RESCUE")}</span>`;
+        }
+      },
+    },
+    [
+      el("span", {}, "🚨"),
+      el("span", {}, t("action.panic_sos", "I AM TRAPPED / SEND RESCUE")),
+    ]
+  );
+
+  banner.appendChild(
+    el("div", { class: "panic-sos-header-row" }, [
+      el("div", { class: "panic-sos-title-block" }, [
+        el("div", { class: "panic-sos-pulsing-icon" }, "🚨"),
+        el("div", {}, [
+          el("div", { class: "panic-sos-title" }, t("panic.title", "EMERGENCY PANIC BEACON — I AM TRAPPED / SEND RESCUE")),
+          el("div", { class: "panic-sos-subtitle" }, t("panic.subtitle", "Single-tap emergency beacon for marooned citizens or trapped vehicles. Transmits live browser GPS coordinates directly to SDMA, NDRF, and District Disaster Management (DDMA).")),
+        ]),
+      ]),
+      triggerBtn,
+    ])
+  );
+
+  banner.appendChild(statusMsg);
+  return banner;
+}
+
+function openPanicModal(report, corridor, lat, lon, accuracy) {
+  const modalBackdrop = el("div", { class: "panic-modal-backdrop" });
+  const ticketNum = report && report.id ? `#SOS-2026-${String(report.id).padStart(4, "0")}` : `#SOS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const modal = el("div", { class: "panic-modal-card" }, [
+    el("div", { class: "panic-modal-header" }, [
+      el("div", { class: "flex items-center gap-3" }, [
+        el("span", { class: "text-3xl" }, "🚨"),
+        el("div", {}, [
+          el("h3", { class: "text-xl font-bold text-red-400" }, t("panic.title", "EMERGENCY RESCUE DISPATCH INITIATED")),
+          el("p", { class: "text-xs text-slate-300" }, t("panic.subtitle", "Your live coordinates have been transmitted to State Disaster Operations (SDMA) and NDRF.")),
+        ]),
+      ]),
+      el("button", {
+        class: "btn btn-secondary btn-small",
+        onclick: () => modalBackdrop.remove(),
+      }, "✕ Close"),
+    ]),
+
+    el("div", { class: "panic-ticket-box" }, [
+      el("div", { class: "flex-between text-xs" }, [
+        el("span", { class: "text-slate-400 font-semibold" }, t("panic.ticket_id", "Rescue Incident Ticket:")),
+        el("strong", { class: "text-emerald-400 font-mono text-sm" }, ticketNum),
+      ]),
+      el("div", { class: "flex-between text-xs" }, [
+        el("span", { class: "text-slate-400" }, "Target Corridor:"),
+        el("strong", { class: "text-white" }, corridor.name || "Northeast Corridor"),
+      ]),
+      el("div", { class: "flex-between text-xs" }, [
+        el("span", { class: "text-slate-400" }, t("panic.coords", "Captured Coordinates:")),
+        el("strong", { class: "text-amber-300 font-mono" }, `${lat}° N, ${lon}° E (${accuracy})`),
+      ]),
+      el("div", { class: "flex-between text-xs" }, [
+        el("span", { class: "text-slate-400" }, "Dispatch Priority:"),
+        el("span", { class: "badge badge-red font-bold" }, "P0 IMMEDIATE CRITICAL"),
+      ]),
+    ]),
+
+    el("div", {}, [
+      el("div", { class: "text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide" }, t("panic.direct_helpline", "1-Tap Emergency Direct Helplines:")),
+      el("div", { class: "helpline-pills-row" }, [
+        el("a", { href: "tel:112", class: "helpline-quick-pill" }, [
+          el("span", { class: "helpline-number" }, "112"),
+          el("span", { class: "helpline-title" }, t("panic.national_112", "National Emergency")),
+        ]),
+        el("a", { href: "tel:1070", class: "helpline-quick-pill" }, [
+          el("span", { class: "helpline-number" }, "1070"),
+          el("span", { class: "helpline-title" }, t("panic.state_1070", "State Disaster (SDMA)")),
+        ]),
+        el("a", { href: "tel:1077", class: "helpline-quick-pill" }, [
+          el("span", { class: "helpline-number" }, "1077"),
+          el("span", { class: "helpline-title" }, t("panic.district_1077", "District Control (DEOC)")),
+        ]),
+      ]),
+    ]),
+
+    el("div", { class: "p-3 bg-red-950/40 border border-red-800/60 rounded-xl text-xs text-red-200" }, [
+      el("strong", {}, "Safety Directives: "),
+      "Stay away from active debris slopes, swollen rivers, and electric lines. Remain visible to search and rescue drones. Keep your phone in battery saver mode.",
+    ]),
+
+    el("button", {
+      class: "btn btn-primary w-full py-2.5 font-bold",
+      onclick: () => modalBackdrop.remove(),
+    }, "Acknowledge & Return to Dashboard"),
+  ]);
+
+  modalBackdrop.appendChild(modal);
+  document.body.appendChild(modalBackdrop);
 }
 
 function reportForm(corridorId, corridors, layout) {

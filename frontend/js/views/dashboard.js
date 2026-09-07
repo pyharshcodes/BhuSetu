@@ -8,6 +8,7 @@ import {
   openSitRepModal, playEmergencySiren, stopEmergencySiren,
   isSirenPlaying, speakEmergencyBroadcast
 } from "../emergency_intel.js";
+import { t } from "../i18n.js";
 
 let currentCorridorId = null;
 let currentStateFilter = "Assam";
@@ -238,14 +239,14 @@ function renderHeroHeader(corridors, selectedId, onChange, corridorDetail = null
     },
     [
       el("span", { class: "btn-icon" }, "📄"),
-      el("span", {}, "Official SitRep"),
+      el("span", {}, t("action.download_sitrep", "Official SitRep")),
     ]
   );
 
   const container = el("div", { class: "hero-header-row" }, [
     el("div", { class: "hero-title-group" }, [
-      el("h1", { class: "hero-main-title" }, "BhuSetu — Landslide Early Warning System"),
-      el("p", { class: "hero-quote-text" }, "Better information. Safer tomorrows."),
+      el("h1", { class: "hero-main-title" }, `${t("brand.title", "BhuSetu")} — Landslide Early Warning System`),
+      el("p", { class: "hero-quote-text" }, t("footer.slogan", "Better information. Safer tomorrows.")),
     ]),
     el("div", { class: "hero-filters-group" }, [
       el("div", { class: "filter-dropdown-wrap" }, [countrySelect]),

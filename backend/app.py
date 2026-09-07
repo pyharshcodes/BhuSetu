@@ -563,9 +563,13 @@ def create_report():
         photo.save(os.path.join(UPLOAD_DIR, photo_filename))
 
     photo_path = os.path.join(UPLOAD_DIR, photo_filename) if photo_filename else None
-    category, confidence = evidence_classifier.classify(
-        description, has_photo=photo_filename is not None, photo_path=photo_path
-    )
+    is_panic = request.form.get("is_panic_sos") == "1" or "PANIC" in reporter_name.upper() or "TRAPPED" in description.upper()
+    if is_panic:
+        category, confidence = "CRITICAL_HAZARD", 99.0
+    else:
+        category, confidence = evidence_classifier.classify(
+            description, has_photo=photo_filename is not None, photo_path=photo_path
+        )
 
     cur = conn.execute(
         """INSERT INTO citizen_reports
