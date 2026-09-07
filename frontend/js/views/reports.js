@@ -42,7 +42,7 @@ function corridorSelector(corridors, selectedId, onChange) {
         onChange(newId);
       },
     },
-    corridors.map((c) => el("option", { value: c.id, ...(c.id === selectedId ? { selected: "selected" } : {}) }, c.name))
+    corridors.slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => el("option", { value: c.id, ...(c.id === selectedId ? { selected: "selected" } : {}) }, `${c.name} (${c.state})`))
   );
   return el("div", { class: "corridor-selector" }, [el("label", {}, "Pilot corridor"), select]);
 }

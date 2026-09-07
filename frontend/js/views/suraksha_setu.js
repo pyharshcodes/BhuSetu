@@ -266,7 +266,7 @@ function renderSurakshaSetuPage(page, corridorId, corridors, overview, corridorD
       el("select", {
         class: "filter-dropdown",
         onchange: (e) => onCorridorChange(Number(e.target.value)),
-      }, corridors.map((c) => el("option", { value: c.id, ...(c.id === corridorId ? { selected: "selected" } : {}) }, c.name))),
+      }, corridors.slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => el("option", { value: c.id, ...(c.id === corridorId ? { selected: "selected" } : {}) }, `${c.name} (${c.state})`))),
     ]),
   ]);
   page.appendChild(header);

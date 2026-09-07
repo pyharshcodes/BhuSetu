@@ -25,7 +25,7 @@ function corridorSelector(corridors, selectedId, onChange) {
   const select = el(
     'select',
     { class: 'corridor-select', onchange: (e) => onChange(Number(e.target.value)) },
-    corridors.map((c) => el('option', { value: c.id, ...(c.id === selectedId ? { selected: 'selected' } : {}) }, c.name))
+    corridors.slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => el('option', { value: c.id, ...(c.id === selectedId ? { selected: 'selected' } : {}) }, `${c.name} (${c.state})`))
   );
   return el('div', { class: 'corridor-selector' }, [el('label', {}, 'Monitored District'), select]);
 }

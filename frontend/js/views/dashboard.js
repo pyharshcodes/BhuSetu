@@ -187,12 +187,12 @@ function renderCommandDashboard(page, grid, corridorId, corridors, overview, cor
 // Component 1: Hero Header with Quote & Breadcrumb Filter
 // -------------------------------------------------------------
 function renderHeroHeader(corridors, selectedId, onChange) {
-  const states = Array.from(new Set(corridors.map((c) => c.state)));
+  const states = Array.from(new Set(corridors.map((c) => c.state))).sort();
   if (!states.includes("Assam") && states.length) currentStateFilter = states[0];
 
   const curCorridor = corridors.find((c) => c.id === selectedId);
   if (curCorridor) currentStateFilter = curCorridor.state;
-  const stateCorridors = corridors.filter((c) => c.state === currentStateFilter);
+  const stateCorridors = corridors.filter((c) => c.state === currentStateFilter).slice().sort((a, b) => a.name.localeCompare(b.name));
 
   const countrySelect = el("select", { class: "filter-dropdown country-select" }, [
     el("option", { value: "India", selected: "selected" }, "India"),
@@ -204,7 +204,7 @@ function renderHeroHeader(corridors, selectedId, onChange) {
       class: "filter-dropdown state-select",
       onchange: (e) => {
         const newState = e.target.value;
-        const matching = corridors.filter((c) => c.state === newState);
+        const matching = corridors.filter((c) => c.state === newState).slice().sort((a, b) => a.name.localeCompare(b.name));
         const nextId = matching.length ? matching[0].id : selectedId;
         onChange(nextId, newState);
       },
@@ -565,7 +565,7 @@ function renderDashboardSmsCard(corridors, corridorId, riskScore, alertLevel, vi
 
   // 1. Target Location Select
   const locSelect = el("select", { class: "sms-card-field-input" },
-    corridors.map((c) => el("option", { value: c.id, ...(c.id === corridorId ? { selected: "selected" } : {}) }, c.name))
+    corridors.slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => el("option", { value: c.id, ...(c.id === corridorId ? { selected: "selected" } : {}) }, `${c.name} (${c.state})`))
   );
 
   // 2. Language Select
